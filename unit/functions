@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# we always start with no errors
+ERROR=0
+PASS=0
+FAILED_FUNCS=""
+TIMESTAMP_FORMAT=${TIMESTAMP_FORMAT:-"%F %H/%M/%S"}
+TOP_DIR=${TOP_DIR:-$(cd $(dirname "$0")/.. && pwd)}
+
+[[ ! -n $LOG_DIR ]] && LOG_DIR="$TOP_DIR/log"
+[[ -d $LOG_DIR ]] && mkdir -p $LOG_DIR
+
+## Get log file dir
+function log {
+    local exitcode=$?
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local res=$1
+    shift 1
+    local msg="$@"
+    local logfile="passed.log"
+    if [[ $res -ne 0 ]] ; then
+        logfile="failed.log"
+    fi 
+    logfile=$LOG_DIR/$logfile 
+    echo -n $(date +"${TIMESTAMP_FORMAT}") "[SCRIPT: $0 PID: $$] -- " >> $logfile
+    echo $msg 2>&1 | tee -ai $logfile
+    $xtrace
+    return $exitcode
+}
+
+function passed {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local lineno=$(caller 0 | awk '{print $1}')
+    local function=$(caller 0 | awk '{print $2}')
+    local msg="$1"
+    if [ -z "$msg" ]; then
+        msg="OK"
+    fi  
+    log 0 "SUCCE: $function:L$lineno!" "$msg"
+    PASS=$((PASS+1))
+
+    $xtrace
+    return $exitcode
+}
+
+function failed {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local lineno=$(caller 0 | awk '{print $1}')
+    local function=$(caller 0 | awk '{print $2}')
+    local msg="$1"
+    FAILED_FUNCS+="$function:L$lineno\n"
+    log 1 "ERROR: $function:L$lineno!" "$msg"
+    ERROR=$((ERROR+1))
+
+    $xtrace
+    return $exitcode
+}
+
+function assert_equal {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local lineno=`caller 0 | awk '{print $1}'`
+    local function=`caller 0 | awk '{print $2}'`
+    local msg=$3
+    if [[ "$1" != "$2" ]]; then
+        FAILED_FUNCS+="$function:L$lineno\n"
+        echo "ERROR: $1 != $2 in $function:L$lineno!"
+        echo "  $msg"
+        ERROR=$((ERROR+1))
+    else
+        PASS=$((PASS+1))
+        echo "$function:L$lineno - ok"
+    fi
+    $xtrace
+    return $exitcode
+}
+
+function report_results {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    log 0 "$PASS Tests PASSED"
+    if [[ $ERROR -gt 1 ]]; then
+        log 1
+        log 1 "The following $ERROR tests FAILED"
+        log 1 "$FAILED_FUNCS"
+        log 1  "---"
+        exit 1
+    fi
+    $xtrace
+    return $exitcode
+}
+
+
+## get you specifiled selects in object.conf
+function get_selects_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local confname=$1
+    local nrname=$2
+
+    #rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+    rets=$(awk NF $confname| sed -n 's/^\[\(.*\)\]$/\1/p')
+    [[ ! -n $nrname ]] && echo $rets || echo $rets |egrep "$nrname"
+    $xtrace
+    return $exitcode
+}
+
+## get you specifiled version options in object.conf
+function get_options_version_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+    local version=$4
+    local var=$5
+
+    #ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | egrep "_$version=")
+    ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=")
+    eval "$var=$ret"
+    $xtrace
+    return $exitcode
+}
+
+## get you specifiled options in object.conf
+function get_options_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+    local var=$4
+
+    if [[ $subcom != 'all' ]] ; then
+        ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
+        eval "$var=$ret"
+    else
+        rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+        echo $rets
+    fi
+    $xtrace
+    return $exitcode
+}
+
+## get you specifiled arg in args.conf
+function get_args_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+    local var=$4
+
+    [[ -f $confname ]] || echo "Not Found config $confname"
+
+    if [[ $subcom != 'all' ]] ; then
+        if [[ $nrname != "shell" ]] ; then
+            rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | awk -F"=" '{print $2}')
+            eval "$var=$rets"
+        else
+            rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" )
+            eval "$var=$rets"
+        fi
+    else
+        rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+        echo $rets
+    fi
+    $xtrace
+    return $exitcode
+}
+
+## has you specifiled selects in object.conf
+function has_selects_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local nrname=$1
+    local confname=$2
+
+    #rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+    rets=$(awk NF $confname | sed -n 's/^\[\(.*\)\]$/\1/p' | egrep "^$nrname")
+    [[ -n $rets ]] && return 0 || return 1
+    #[[ ! -n $selectname ]] && echo $rets || echo $rets |egrep "$selectname"
+    $xtrace
+}
+
+## has you specifiled option in option.conf
+function has_options_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+
+    if [[ $subcom != 'all' ]] ; then
+        ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
+        [[ -n $ret ]] && return 0 || return 1
+    else
+        return 0
+    fi
+    $xtrace
+}
+
+## has you specifiled options version in options.conf
+function has_options_version_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+    local version=$4
+
+    #ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | egrep "_$version=" )
+    ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=" )
+    [[ -n $ret ]] && return 0 || return 1
+    $xtrace
+}
+
+## has you specifiled arg in args.conf
+function has_args_conf {
+    local xtrace=$(set +o | grep xtrace)
+    set +o xtrace
+    local nrname=$1
+    local confname=$2
+    local funcname=$3
+    local var=$4
+
+    [[ -f $confname ]] || echo "Not Found config $confname"
+    rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^$funcname" )
+    [[ -n $rets ]] && return 0 || return 1
+    $xtrace
+}

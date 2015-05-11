@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# author leidong
+
+TOP_DIR=${TOP_DIR:-$(cd $(dirname "$0")/.. && pwd)}
+
+CMD_SH=$(which ksh 2>/dev/null)
+[[ $? -ne 0 ]] && CMD_SH=$(which sh)
+[[ ! -d $LOG_DIR ]] && mkdir -p $LOG_DIR
+
+if [[ -d $UNIT_DIR ]]; then
+    
+    source $UNIT_DIR/functions
+else
+    source $TOP_DIR/unit/functions
+fi
+
+[[ -f $SCRIPT_FILE  ]] || die $LINENO "Not Found $SCRIPT_FILE"
+[[ -f $ARGS_FILE  ]] || die $LINENO "Not Found $ARGS_FILE"
+
+
+## exec spec script file 
+function _exec_ {
+
+    local exec_script=$1
+    local args="$2"
+    $CMD_SH $exec_script $args &>>/$LOG_DIR/${funcname}.log
+    [[ $? -eq 0 ]] && passed "${funcname} script is passed" || failed "${funcname} script is failed"
+}
+
+## get specified function alise name eg host
+## pdtest.conf
+##[getinfo]
+##host=172.24.23.140@padmin
+function has_args {
+    local nrname=$1
+    local confname=$2
+    local funcname=$3
+
+    has_args_conf $nrname $ARGS_FILE $funcname
+    #[[ $? -eq 0 ]] || die $LINENO "Not Found $funcname in  $nrname group from $confname"
+    return $?
+}
+
+## get specified function alise name eg host
+## pd.conf
+##[getinfo]
+##host=get_host_info.sh
+function has_options {
+    local nrname=$1
+    local confname=$2
+    local subcom=$3
+    local version=$4
+
+    if [[ -n $version ]] ; then
+        has_options_version_conf $nrname $confname $subcom $version
+        [[ $? -eq 0 ]] || die $LINENO "Not Found ${subcom}_${version} in [$nrname] group from $confname"
+    else
+        has_options_conf $nrname $confname $subcom
+        [[ $? -eq 0 ]] || die $LINENO "Not Found $subcom in [$nrname] group from $confname"
+    fi
+}
+
+## get specified function alise name eg host
+## pd.conf
+##[getinfo]
+##host=get_host_info.sh
+function get_script_file {
+    local scriptname=$(basename $1)
+    local scriptdir=$(dirname $1)
+    local outscript=$2
+
+    [[ -d $CLIENT_DIR ]] || die $LINENO "Not Found config $CLIENT_DIR"
+    ret=$(find $CLIENT_DIR/$scriptdir -name "$scriptname" -type f)
+    [[ -n $ret ]] && eval $outscript=$ret || die $LINENO "Not Found script file $scriptname"
+}
+
+## exec pd.conf and pdtest.conf file in specified groups
+## main function
+function  exec_funcs {
+    local nrname=$1
+    local subcoms=$2
+    local version=$3
+
+    has_selects_conf $nrname $SCRIPT_FILE
+    [[ $? -eq 0 ]] || die $LINENO "Not Found $nrname group in $SCRIPT_FILE"
+
+    if [[ -n "$subcoms" ]]; then
+        for subcom in $subcoms
+        do
+            #has_selects_conf $nrname $SCRIPT_FILE $subcom
+            if [[ -n $versions ]] ; then
+                has_options $nrname $SCRIPT_FILE $subcom $version
+                get_options_version_conf $nrname $SCRIPT_FILE $subcom $version outfunc 
+            else
+                has_options $nrname $SCRIPT_FILE $subcom
+                get_options_conf $nrname $SCRIPT_FILE $subcom outfunc 
+            fi
+            
+            has_args $nrname $ARGS_FILE $subcom
+            if [[ $? -ne 0 ]]; then
+                warn $LINENO "Not Found $subcom args in [$nrname] group from $ARGS_FILE" 
+                continue 
+            fi
+
+            get_args_conf $nrname $ARGS_FILE $subcom outargs
+
+            funcname=$(echo $outfunc | cut -d"=" -f2)
+
+            get_script_file $funcname exec_script
+            args=$(echo $outargs | sed 's/[#|@]/ /g')
+
+            _exec_ $exec_script "$args"
+
+        done
+    else
+        outfuncs=$(get_options_conf $nrname $SCRIPT_FILE all)
+        for outfunc in $outfuncs
+        do
+            subcom=$(echo $outfunc | cut -d"=" -f1) 
+            funcname=$(echo $outfunc | cut -d"=" -f2) 
+
+            has_args $nrname $ARGS_FILE $subcom
+            if [[ $? -ne 0 ]] ; then
+                warn $LINENO "Not Found $subcom args in [$nrname] group from $ARGS_FILE" 
+                continue
+            fi
+
+            get_args_conf $nrname $ARGS_FILE $subcom outargs
+            args=$(echo $outargs | sed 's/[#|@]/ /g')
+
+            get_script_file $funcname exec_script
+            _exec_ $exec_script "$args"
+        done
+    fi
+}
+
+## exec pd.conf file in all groups
+## all main functions
+function all_exec_funcs {
+    local nrnames=$(get_selects_conf $SCRIPT_FILE)
+    [[ -n $nrnames ]] || die $LINENO "Not Found select in $SCRIPT_FILE"
+    for nrname in $nrnames
+    do
+        exec_funcs $nrname
+    done
+}
+
+## exec pdtest.conf file in shell groups specified script name
+## fullname in [shell] group
+##[shell]
+##get_host_info.sh=172.24.23.140#padmin
+
+function full_exec_funcs {
+    local fullscriptname=$1
+
+    has_selects_conf "shell" $ARGS_FILE
+    if [[ $? -eq 0 ]] ; then
+        if [[ -n  $fullscriptname ]] ; then
+            get_args_conf "shell" $ARGS_FILE "$fullscriptname" outfuncs || die $LINENO "Not Found  $fullscriptname from [shell] group in $ARGS_FILE"
+        else
+            outfuncs=$(get_args_conf "shell" $ARGS_FILE "all") || die $LINENO "Not Found [shell] group in $ARGS_FILE"
+        fi
+    else
+        die $LINENO "Not Found [shell] group in $ARGS_FILE"
+    fi
+
+    for outfunc in $outfuncs
+    do
+        funcname=$(echo $outfunc | cut -d"=" -f1)
+        outargs=$(echo $outfunc | cut -d"=" -f2)
+        args=$(echo $outargs | sed 's/[#|@]/ /g')
+
+        get_script_file $funcname exec_script
+
+        _exec_ $exec_script "$args"
+    done
+}
+
+
+
+##-----------------main function -----------------------##
+## exec pd.conf and pdtest.conf file in specified groups
+function main {
+    local nrname=$1
+    local subcoms=$2
+    local versions=$3
+
+    if [[ -n $versions ]]; then
+        for version in $versions
+        do
+            exec_funcs $nrname "$subcoms" $version
+        done
+    else
+        exec_funcs $nrname "$subcoms" 
+    fi
+}
+
+## exec pd.conf file in all groups
+function all_main {
+    all_exec_funcs
+}
+
+## exec pdtest.conf file in specified groups
+function full_main {
+    local fullscriptnames="$1"
+    if [[ -n $fullscriptnames ]] ; then
+        for fullscriptname in $fullscriptnames
+        do
+            full_exec_funcs $fullscriptname
+        done
+    else
+        full_exec_funcs
+    fi
+}

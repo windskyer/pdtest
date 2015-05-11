@@ -1,0 +1,7 @@
+log
+bin
+
+setup.*
+pdtest
+etc/*.sh
+
