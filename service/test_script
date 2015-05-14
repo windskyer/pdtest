@@ -23,6 +23,9 @@ function _exec_ {
 
     local exec_script=$1
     local args="$2"
+    ## cd in script dir
+    exec_dir=$(dirname $exec_script)
+    [[ -d $exec_dir ]] && cd $exec_dir/
     $CMD_SH $exec_script $args &>>/$LOG_DIR/${funcname}.log
     [[ $? -eq 0 ]] && passed "${funcname} script is passed" || failed "${funcname} script is failed"
 }
