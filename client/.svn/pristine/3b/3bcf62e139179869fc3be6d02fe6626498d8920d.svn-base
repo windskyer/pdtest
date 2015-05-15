@@ -1,0 +1,114 @@
+#!/usr/bin/expect -f
+# local host must be trust with plt_ipaddr.
+
+set argv_str [split [lindex $argv 0] "\|"]
+set command [lindex $argv 1]
+
+set command_list [split ${command} ";"]
+
+set plt_ipaddr [lindex $argv_str 0]
+set plt_user [lindex $argv_str 1]
+set vm_id [lindex $argv_str 2]
+set vm_user [lindex $argv_str 3]
+set vm_passwd [lindex $argv_str 4]
+set run_time [lindex $argv_str 5]
+
+set timeout1 5
+set timeout2 10
+spawn ssh ${plt_user}@${plt_ipaddr}
+
+###logon padmin user on vios.
+expect {
+		"*assword:*"	{send "padmin\r"}
+		"*continue connecting*"  {send "yes\r"}
+		"*assword:*"	{send "padmin\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout1 {exit 1}
+}
+
+
+
+expect {
+		"*$ "	{send "rmvt -id ${vm_id}\r"}
+		timeout1 {exit 1}
+}
+
+expect {
+		"*$ "	{send "mkvt -id ${vm_id}\r"}
+		timeout1 {exit 1}
+}
+
+
+expect {
+        "*$ "	{send "exit\r"}
+		"*# "	{send "exit\r"}
+		"*> "	{send "exit\r"}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout1 {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout1 {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "${vm_user}\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		#"*incorrect*"	{exit 99}
+		"*ogin*"	{send "${vm_user}\r"}
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout1 {exit 1}
+}
+
+expect {
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout1 {exit 1}
+}
+
+foreach command $command_list {
+	expect {
+			"*$ "	{send "echo \"exec cmd $command \">> command.log \r";send "$command >> command.log 2>&1\r"}
+			"*# "	{send "echo \"exec cmd $command \">> command.log \r";send "$command >> command.log 2>&1\r"}
+			timeout1 {exit 1}
+	}
+}
+	
+expect {
+		"*$ "	{send "exit\r"}
+		"*# "	{send "exit\r"}
+		"*> "	{send "exit\r"}
+		timeout1 {exit 1}
+}
+
+set timeout 1
+
+expect eof

@@ -1,5 +1,8 @@
 The Choose Your Own Adventure README for pdtest 
 ===================================================
+## 最开始 使用  pdtest_release.sh  脚本进行打包
+## 打包后 在dist 目录中 有 .tar 文件 
+## 该压缩文件就是 shell 测试框架
 
 ## 操作参数说明
     pdtest  <options>

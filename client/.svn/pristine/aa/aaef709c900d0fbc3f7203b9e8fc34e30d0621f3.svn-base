@@ -1,0 +1,158 @@
+#!/usr/bin/expect -f
+
+set argv_str [split [lindex $argv 0] "\|"]
+set script_path [lindex $argv 1]
+set scripts [lindex $argv 2]
+
+
+set plt_user [lindex $argv_str 0]
+set plt_ipaddr [lindex $argv_str 1]
+set vm_id [lindex $argv_str 2]
+set vm_user [lindex $argv_str 3]
+set vm_passwd [lindex $argv_str 4]
+set run_time [lindex $argv_str 5]
+
+set script_list [split ${scripts} ";"]
+
+set timeout 10
+#puts "script_path==$script_path,scripts==$scripts,plt_user==${plt_user},plt_ipaddr==${plt_ipaddr}"
+spawn ssh ${plt_user}@${plt_ipaddr}
+
+expect {
+		"*$ "	{send "rmvt -id ${vm_id}\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*$ "	{send "mkvt -id ${vm_id}\r"}
+		timeout {exit 1}
+}
+
+expect {
+        "*$ "	{send "exit\r"}
+		"*# "	{send "exit\r"}
+		"*> "	{send "exit\r"}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "${vm_user}\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		#"*incorrect*"	{exit 99}
+		"*ogin*"	{send "${vm_user}\r"}
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout {exit 1}
+}
+
+expect {
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout {exit 1}
+}
+
+
+foreach script $script_list {
+		set timeout $run_time
+		
+		set script_name [lindex [split $script ","] 0]
+		set script_param [lindex [split $script ","] 1]
+		set script_param2 [lindex [split $script ","] 2]
+		set script_param3 [lindex [split $script ","] 3]
+		
+		expect {
+			"*$ "	{send "$script_path/$script_name $script_param $script_param2 $script_param3\r"}
+			"*# "	{send "$script_path/$script_name $script_param $script_param2 $script_param3\r"}
+			"*> "	{send "$script_path/$script_name $script_param $script_param2 $script_param3\r"}
+			timeout {exit 1}
+		}
+		
+		expect {
+			"*$ "	{send "\r"}
+			"*# "	{send "\r"}
+			"*> "	{send "\r"}
+			timeout {exit 1}
+		}
+		
+		#set timeout 1
+		
+		#expect eof
+	
+		#set error [exec echo $expect_out(buffer) | sed -e "/$script_name/d" | awk "{print substr(\$0,0,length(\$0)-1)}"]
+		set error [exec echo $expect_out(buffer) | sed -e "\$d" | sed -e "1d" | awk "{print substr(\$0,0,length(\$0)-1)}"]
+		expect {
+				"*$ "	{send "echo $?\r"}
+				"*# "	{send "echo $?\r"}
+				"*> "	{send "echo $?\r"}
+				timeout {exit 1}
+		}
+
+		#expect eof
+		
+		expect {
+				"*$ "	{send "\r"}
+				"*# "	{send "\r"}
+				"*> "	{send "\r"}
+				timeout {exit 1}
+		}
+		
+		#expect eof
+
+		set result [exec echo $expect_out(buffer) | awk "{print substr(\$0,0,length(\$0)-1)}" | awk "{if(\$1==\"0\") print 0}"]
+		
+		#puts "error========$error============="
+		#puts "result========$result============="
+		
+		if { $result == "" } {
+			expect {
+					"*$ "	{send "exit\r"}
+					"*# "	{send "exit\r"}
+					"*> "	{send "exit\r"}
+					timeout {exit 1}
+			}
+			puts "ERROR|$error"
+			exit 10
+		}
+		
+}
+
+expect {
+		"*$ "	{send "exit\r"}
+		"*# "	{send "exit\r"}
+		"*> "	{send "exit\r"}
+		timeout {exit 1}
+}
+
+set timeout 1
+
+expect eof

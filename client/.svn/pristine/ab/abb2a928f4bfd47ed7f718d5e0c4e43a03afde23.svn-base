@@ -1,0 +1,8 @@
+lssyscfg -r lpar
+lssyscfg -r prof
+lssyscfg -r sys
+lshwres -r proc --level lpar
+lshwres -r mem --level lpar
+lsled -r sa -t phys
+lsled -r sa -t virtuallpar
+lslparutil -r lpar

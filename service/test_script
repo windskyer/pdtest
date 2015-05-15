@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ksh
 # author leidong
 
 TOP_DIR=${TOP_DIR:-$(cd $(dirname "$0")/.. && pwd)}
@@ -9,25 +9,55 @@ CMD_SH=$(which ksh 2>/dev/null)
 
 if [[ -d $UNIT_DIR ]]; then
     
-    source $UNIT_DIR/functions
+    . $UNIT_DIR/functions
 else
-    source $TOP_DIR/unit/functions
+    . $TOP_DIR/unit/functions
 fi
 
 [[ -f $SCRIPT_FILE  ]] || die $LINENO "Not Found $SCRIPT_FILE"
 [[ -f $ARGS_FILE  ]] || die $LINENO "Not Found $ARGS_FILE"
 
 
+## check ok result 
+function check_res {
+    local filename=$1
+    local exitcode=1
+
+    [[ -f $filename ]] || die "Not Found $filename file"
+    json_linenum=$(cat $filename | sed -n 's/^{\(.*\)}$/\1/p')
+    success_linenum=$(cat $filename | sed -n 's/^1|\(.*\)|SUCCESS$/\1/p' | egrep "100" )
+    [[ -n $json_linenum || -n $success_linenum ]] && exitcode=0
+    return $exitcode
+}
 ## exec spec script file 
 function _exec_ {
 
     local exec_script=$1
     local args="$2"
-    ## cd in script dir
-    exec_dir=$(dirname $exec_script)
+    local funcname=$3
+    local exec_dir=$(dirname $exec_script)
+    local datetime=$(date +"${TIMESTAMP_FORMAT}")
+    local inargs=
+    local is_ok=1
+    local log_file="/$LOG_DIR/${funcname}.log"
+    local log_file_tmp="/$LOG_DIR/.${funcname}.log.tmp"
+
     [[ -d $exec_dir ]] && cd $exec_dir/
-    $CMD_SH $exec_script $args &>>/$LOG_DIR/${funcname}.log
-    [[ $? -eq 0 ]] && passed "${funcname} script is passed" || failed "${funcname} script is failed"
+
+    for arg in $args
+    do
+        #inargs="$inargs '$arg'"
+        inargs="$inargs $arg"
+    done
+    printf "$datetime [SCRIPT: $funcname ARGS: $inargs] -- " >> $log_file 
+
+    [[ -f $log_file_tmp ]] && cat /dev/null > $log_file_tmp 
+    $CMD_SH $exec_script $inargs 2>&1 | tee -ai $log_file_tmp
+    is_ok=$?
+
+    check_res $log_file_tmp
+    [[ $? -eq 0  &&$is_ok -eq 0 ]] && passed " {{ ${funcname} ${inargs} }} script is passed" || failed "{{ ${funcname} ${inargs} }} script is failed"
+    cat $log_file_tmp >> $log_file
 }
 
 ## get specified function alise name eg host
@@ -98,7 +128,10 @@ function  exec_funcs {
                 has_options $nrname $SCRIPT_FILE $subcom
                 get_options_conf $nrname $SCRIPT_FILE $subcom outfunc 
             fi
-            
+
+            funcname=$(echo $outfunc | cut -d"=" -f2)
+            get_script_file $funcname exec_script
+
             has_args $nrname $ARGS_FILE $subcom
             if [[ $? -ne 0 ]]; then
                 warn $LINENO "Not Found $subcom args in [$nrname] group from $ARGS_FILE" 
@@ -106,21 +139,24 @@ function  exec_funcs {
             fi
 
             get_args_conf $nrname $ARGS_FILE $subcom outargs
-
-            funcname=$(echo $outfunc | cut -d"=" -f2)
-
-            get_script_file $funcname exec_script
-            args=$(echo $outargs | sed 's/[#|@]/ /g')
-
-            _exec_ $exec_script "$args"
+            outargs=$(echo $outargs | tr "!" " ")
+            for outarg in $outargs
+            do
+                args=$(echo $outarg | sed 's/[#@]/ /g')
+                _exec_ $exec_script "$args" $funcname
+            done
 
         done
     else
-        outfuncs=$(get_options_conf $nrname $SCRIPT_FILE all)
+        get_options_conf $nrname $SCRIPT_FILE all outfuncs
+        outfuncs=$(echo "$outfuncs" | tr "!" " ")
+
         for outfunc in $outfuncs
         do
             subcom=$(echo $outfunc | cut -d"=" -f1) 
             funcname=$(echo $outfunc | cut -d"=" -f2) 
+
+            get_script_file $funcname exec_script
 
             has_args $nrname $ARGS_FILE $subcom
             if [[ $? -ne 0 ]] ; then
@@ -129,10 +165,12 @@ function  exec_funcs {
             fi
 
             get_args_conf $nrname $ARGS_FILE $subcom outargs
-            args=$(echo $outargs | sed 's/[#|@]/ /g')
-
-            get_script_file $funcname exec_script
-            _exec_ $exec_script "$args"
+            outargs=$(echo $outargs | tr "!" " ")
+            for outarg in $outargs
+            do
+                args=$(echo $outarg | sed 's/[#@]/ /g')
+                _exec_ $exec_script "$args" $funcname
+            done
         done
     fi
 }
@@ -140,8 +178,11 @@ function  exec_funcs {
 ## exec pd.conf file in all groups
 ## all main functions
 function all_exec_funcs {
-    local nrnames=$(get_selects_conf $SCRIPT_FILE)
-    [[ -n $nrnames ]] || die $LINENO "Not Found select in $SCRIPT_FILE"
+
+    get_selects_conf $SCRIPT_FILE nrnames
+    nrnames=$(echo $nrname | tr "!" " ")
+    [[ -n "$nrnames" ]] || die $LINENO "Not Found select in $SCRIPT_FILE"
+
     for nrname in $nrnames
     do
         exec_funcs $nrname
@@ -161,12 +202,13 @@ function full_exec_funcs {
         if [[ -n  $fullscriptname ]] ; then
             get_args_conf "shell" $ARGS_FILE "$fullscriptname" outfuncs || die $LINENO "Not Found  $fullscriptname from [shell] group in $ARGS_FILE"
         else
-            outfuncs=$(get_args_conf "shell" $ARGS_FILE "all") || die $LINENO "Not Found [shell] group in $ARGS_FILE"
+            get_args_conf "shell" $ARGS_FILE "all" outfuncs || die $LINENO "Not Found [shell] group in $ARGS_FILE"
         fi
     else
         die $LINENO "Not Found [shell] group in $ARGS_FILE"
     fi
 
+    outfuncs=$(echo $outfuncs | tr "!" " ")
     for outfunc in $outfuncs
     do
         funcname=$(echo $outfunc | cut -d"=" -f1)
@@ -175,7 +217,7 @@ function full_exec_funcs {
 
         get_script_file $funcname exec_script
 
-        _exec_ $exec_script "$args"
+        _exec_ $exec_script "$args" $funcname
     done
 }
 

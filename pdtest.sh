@@ -1,4 +1,5 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env ksh
+#author leidong
 
 TOP_DIR=$(cd $(dirname "$0")/ && pwd)
 ETC_DIR=${TOP_DIR}/etc
@@ -11,8 +12,8 @@ SCRIPT_FILE=$ETC_DIR/pdserver.conf
 ARGS_FILE=$ETC_DIR/pdclient.conf
 
 
-[[ -f $UNIT_DIR/functions-common ]] && source $UNIT_DIR/functions-common || ( echo "Not Found functions-common file"; exit 1 )
-[[ -f $SERVICE_DIR/test_script ]] && source $SERVICE_DIR/test_script || die $LINENO "Not Found test_script file"
+[[ -f $UNIT_DIR/functions-common ]] && . $UNIT_DIR/functions-common || ( echo "Not Found functions-common file"; exit 1 )
+[[ -f $SERVICE_DIR/test_script ]] && . $SERVICE_DIR/test_script || die $LINENO "Not Found test_script file"
 
 function usage {
     printf "Usage:\n %s  <options>

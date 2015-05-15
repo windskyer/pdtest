@@ -1,0 +1,37 @@
+#!/usr/bin/expect
+
+set ipaddr [lindex $argv 0]
+set user [lindex $argv 1]
+set passwd [lindex $argv 2]
+set key [lindex $argv 3]
+
+cd ~
+
+set timeout 10 
+
+spawn ssh ${user}@${ipaddr}
+expect {
+			 "*(yes/no)*"	{send "yes\r"}
+			 "*assword:*"	{send "$passwd\r"}
+}
+
+expect {
+			 "*assword:*"	{send "$passwd\r"}
+			 "*$*"		{send "\r"}
+			 "*#*"		{send "\r"}
+			 "*~>*"	{send "\r"}
+}
+
+expect {
+			"*$*"		{send "mkauthkeys -r \"$key\"\r"}
+			"*#*"		{send "mkauthkeys -r \"$key\"\r"}
+			"*~>*"		{send "mkauthkeys -r \"$key\"\r"}
+}
+
+expect {
+			"*$*"       {send "mkauthkeys -a \"$key\"\r"}
+			"*#*"       {send "mkauthkeys -a \"$key\"\r"}
+			"*~>*"      {send "mkauthkeys -a \"$key\"\r"}
+}
+
+expect eof

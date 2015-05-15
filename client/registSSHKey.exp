@@ -1,0 +1,60 @@
+#!/usr/bin/expect
+
+set ipaddr [lindex $argv 0]
+set user [lindex $argv 1]
+set passwd [lindex $argv 2]
+
+cd ~
+
+set err [catch {set fileid [open .ssh/id_dsa.pub r]} errMsg]
+if {$err == 1} {
+		set err [catch {set res [exec ssh-keygen -t dsa -f //.ssh/id_dsa -q -N ""]} errMsg]
+    if {$err == 1} {
+        		puts "ERROR : $errMsg"
+        		return
+    } else {
+			if {$err != 0} {
+				puts "ERROR : Create key failed!"
+				return
+			}
+		}
+}
+
+set err [catch {set fileid [open .ssh/id_dsa.pub r]} errMsg]
+if {$err == 1} {
+	puts "ERROR : Create key failed!"
+  return
+} else {
+	while {[set num [gets $fileid line]] > 0} {
+		set key $line
+	}
+}
+
+set timeout 10 
+
+spawn ssh ${user}@${ipaddr}
+expect {
+			 "*(yes/no)*"	{send "yes\r"}
+			 "*assword:*"	{send "$passwd\r"}
+}
+
+expect {
+			 "*assword:*"	{send "$passwd\r"}
+			 "*$*"		{send "\r"}
+			 "*#*"		{send "\r"}
+			 "*~>*"	{send "\r"}
+}
+
+expect {
+			"*$*"		{send "mkauthkeys -r \"$key\"\r"}
+			"*#*"		{send "mkauthkeys -r \"$key\"\r"}
+			"*~>*"		{send "mkauthkeys -r \"$key\"\r"}
+}
+
+expect {
+			"*$*"       {send "mkauthkeys -a \"$key\"\r"}
+			"*#*"       {send "mkauthkeys -a \"$key\"\r"}
+			"*~>*"      {send "mkauthkeys -a \"$key\"\r"}
+}
+
+expect eof

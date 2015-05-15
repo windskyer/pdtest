@@ -1,0 +1,68 @@
+#!/usr/bin/expect
+
+set ipaddr [lindex $argv 0]
+set user [lindex $argv 1]
+set passwd [lindex $argv 2]
+set keyfile [lindex $argv 3]
+
+set DATE [exec date "+%Y%m%d%H%M%S"]  
+set keyname [ exec basename $keyfile]
+
+set timeout 10
+
+spawn ssh ${user}@${ipaddr}
+
+expect {
+			 "*(yes/no)*"	{send "yes\r"}
+			 "*assword:*"	{send "$passwd\r"}
+}
+
+expect {
+			 "*assword:*"	{send "$passwd\r"}
+			 "*$*"		{send "\r"}
+			 "*#*"		{send "\r"}
+			 "*>*"	{send "\r"}
+}
+
+expect {
+			"*$*"		{send "chuser -nokey $user\r"}
+			"*#*"		{send "chuser -nokey $user\r"}
+			"*>*"		{send "chuser -nokey $user\r"}
+}
+
+spawn scp $keyfile ${user}@${ipaddr}:/tmp/$keyname${DATE}
+
+expect {
+			 "*(yes/no)*"	{send "yes\r"}
+			 "*assword:*"	{send "$passwd\r"}
+}
+
+expect {
+			 "*assword:*"	{send "$passwd\r"}
+			 "*$*"		{send "\r"}
+			 "*#*"		{send "\r"}
+			 "*>*"	{send "\r"}
+}
+
+
+spawn ssh ${user}@${ipaddr}
+
+expect {
+			 "*(yes/no)*"	{send "yes\r"}
+			 "*assword:*"	{send "$passwd\r"}
+}
+
+expect {
+			 "*assword:*"	{send "$passwd\r"}
+			 "*$*"		{send "\r"}
+			 "*#*"		{send "\r"}
+			 "*>*"	{send "\r"}
+}
+
+expect {
+			"*$*"		{send "chuser -keyfile /tmp/$keyname${DATE} ${user}\r"}
+			"*#*"		{send "chuser -keyfile /tmp/$keyname${DATE} ${user}\r"}
+			"*>*"		{send "chuser -keyfile /tmp/$keyname${DATE} ${user}\r"}
+}
+
+expect eof

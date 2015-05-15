@@ -1,0 +1,27 @@
+hostname
+fcstat fcs0
+ioslevel
+lsdev
+lsfware -all
+lslparinfo
+lsmap -all -net
+lsmap -all -npiv
+lsmap -all
+lsnports
+lspath
+lspv -avail
+lspv -free
+lspv
+lsrep
+lssp
+lssp -bd -sp rootvg
+lstcpip -routtable
+lsvg
+lslv lv01
+lsvg -map rootvg
+lsvopt
+netstat -routtable
+netstat -state
+netstat -socket
+viostat
+vmstat

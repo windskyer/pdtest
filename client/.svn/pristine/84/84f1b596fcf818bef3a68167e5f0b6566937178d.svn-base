@@ -1,0 +1,31 @@
+#!/usr/bin/expect
+
+set user [lindex $argv 0]
+set ipaddr [lindex $argv 1]
+set cmd_str [lindex $argv 2]
+set cmd_list [split ${cmd_str} "\|"]
+set root_flag 0
+
+set timeout 5
+
+spawn ssh ${user}@${ipaddr}
+
+foreach cmd $cmd_list {
+	if { $root_flag == 1 } {
+		expect "#*"
+	} else {
+		expect "$*"
+	}
+	send "$cmd\r"
+	if { "$cmd" == "oem_setup_env" } {
+		set root_flag 1
+	}
+}
+
+if { $root_flag == 1 } {
+	expect "#*"
+} else {
+	expect "$*"
+}
+expect eof
+

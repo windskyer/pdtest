@@ -1,0 +1,24 @@
+#!/usr/bin/expect
+
+set ipaddr [lindex $argv 0]
+set user [lindex $argv 1]
+set passwd [lindex $argv 2]
+set cmd [lindex $argv 3]
+#set dir_file [lindex $argv 3]
+#set fd_name [ lindex $argv 4]
+
+set timeout 2
+spawn ssh ${user}@${ipaddr}
+expect {
+	"*(yes/no)*"	{send "yes\r"}
+	"*assword:*"	{send "${passwd}\r"}
+}
+
+expect {
+		"*$ "	{send "${cmd} \r"}
+}
+
+set timeout 1
+expect eof
+
+

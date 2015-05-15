@@ -1,0 +1,141 @@
+#!/usr/bin/expect -f
+
+set argv_str [split [lindex $argv 0] "\|"]
+
+set plt_user [lindex $argv_str 0]
+set plt_ipaddr [lindex $argv_str 1]
+set vm_id [lindex $argv_str 2]
+set vm_user [lindex $argv_str 3]
+set vm_passwd [lindex $argv_str 4]
+set url_scripts [lindex $argv_str 5]
+set scripts_tar_name [lindex $argv_str 6]
+set script_path [lindex $argv_str 7]
+
+set timeout 15
+spawn ssh ${plt_user}@${plt_ipaddr}
+
+expect {
+		"*$ "	{send "rmvt -id ${vm_id}\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*$ "	{send "mkvt -id ${vm_id}\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin:*"	{send "${vm_user}\r"}
+		"*assword:*"	{send "\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		timeout {exit 1}
+}
+
+expect {
+		"*ogin*"	{send "${vm_user}\r"}
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout {exit 1}
+}
+
+expect {
+		"*assword*"	{send "${vm_passwd}\r"}
+		"*$ "	{send "\r"}
+		"*# "	{send "\r"}
+		"*> "	{send "\r"}
+		"*incorrect*"	{exit 99}
+		timeout {exit 1}
+}
+
+proc common_function {command} {
+	expect {
+		"*$ "	{send "${command}\r"}
+		"*# "	{send "${command}\r"}
+		"*> "	{send "${command}\r"}
+		timeout {exit 1}
+	}
+
+	expect {
+			"*$ "	{send "echo $?\r"}
+			"*# "	{send "echo $?\r"}
+			"*> "	{send "echo $?\r"}
+			timeout {exit 1}
+	}
+
+	set error [exec echo $expect_out(buffer) | sed -e "\$d" | sed -e "1d" | awk "{print substr(\$0,0,length(\$0)-1)}"]
+	#puts "error==$error==**"
+
+	expect {
+			"*$ "	{send "\r"}
+			"*# "	{send "\r"}
+			"*> "	{send "\r"}
+			timeout {exit 1}
+	}
+
+	set result [exec echo $expect_out(buffer) | awk "{print substr(\$0,0,length(\$0)-1)}" | awk "{if(\$1==\"0\") print 0}"]
+	#puts "result==$result==**"
+	if { "$result" != "0" } {
+		expect {
+				"*$ "	{send "exit\r"}
+				"*# "	{send "exit\r"}
+				"*> "	{send "exit\r"}
+				timeout {exit 1}
+		}
+		
+		puts "ERROR|$error"
+		
+		exit 10
+	}
+}
+
+common_function "which curl"
+
+common_function "curl $url_scripts -o $scripts_tar_name"
+
+common_function "tar -xf $scripts_tar_name"
+
+common_function "cd $scripts_tar_name"
+
+common_function "chmod 755 install.sh"
+
+common_function "./install.sh"
+
+common_function "cd -"
+
+common_function "rm -rf $scripts_tar_name"
+
+common_function "$script_path/get_os_info.sh"
+
+expect {
+		"*$ "	{send "exit\r"}
+		"*# "	{send "exit\r"}
+		"*> "	{send "exit\r"}
+		timeout {exit 1}
+}
+
+set timeout 1
+
+expect eof
