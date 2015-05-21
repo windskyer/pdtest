@@ -10,6 +10,7 @@ SERVICE_DIR=${TOP_DIR}/service
 
 SCRIPT_FILE=$ETC_DIR/pdserver.conf
 ARGS_FILE=$ETC_DIR/pdclient.conf
+JSON_SH=$UNIT_DIR/json
 
 
 [[ -f $UNIT_DIR/functions-common ]] && . $UNIT_DIR/functions-common || ( echo "Not Found functions-common file"; exit 1 )
