@@ -17,6 +17,7 @@ OBJECT_VERSION=${OBJECT_VERSION:-"2.5"}
 CMD_SVN=$(which svn)
 if [[ $? -ne 0 || ! -n $CMD_SVN ]] ; then
     echo "Not Found svn commond " 
+    echo "please use pdtest.sh -d /powerdirector/tomcat/webapps/ROOT/shellscripts/ "
     exit 1 
 fi
 

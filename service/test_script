@@ -17,47 +17,28 @@ fi
 [[ -f $SCRIPT_FILE  ]] || die $LINENO "Not Found $SCRIPT_FILE"
 [[ -f $ARGS_FILE  ]] || die $LINENO "Not Found $ARGS_FILE"
 
-
 ## check ok result 
 function check_res {
     local filename=$1
     local exitcode=1
 
-    local json_exit=1
-    local list_exit=1
-
     local j_exit=1
-    local l_exit=1
-
     [[ -f $filename ]] || die  $LINENO "Not Found $filename file"
     success_linenum=$(cat $filename | sed -n 's/^1|\(.*\)|SUCCESS$/\1/p' | egrep "100" )
 
-    jlinenum=$(cat $filename | sed -n 's/^{\(.*\)}$/\1/p')
-    if [[ -n $jlinenum ]]; then
-        if [[ -x $JSON_SH ]] ; then
-            json_linenum=$(cat $filename | ./$JSON_SH 2>/dev/null )
-            json_exit=$?
-        else
-            die $LINENO "Not Found $JSON_SH file"
-        fi
+    if [[ -x $JSON_SH ]] ; then
+        json_linenum=$(cat $filename | $JSON_SH -b 2>/dev/null )
+        json_exit=$?
+    else
+        die $LINENO "Not Found $JSON_SH file"
     fi
-    [[ -n $json_linenum && $json_exit -eq 0 ]] && j_exit=0 
 
-    llinenum=$(cat $filename | sed -n 's/^\[{\(.*\)}\]$/\1/p')
-    if [[ -n $llinenum ]]; then
-        if [[ -x $JSON_SH ]] ; then
-            list_linenum=$(cat $filename | ./$JSON_SH 2>/dev/null )
-            list_exit=$?
-        else
-            die $LINENO "Not Found $JSON_SH file"
-        fi
-    fi
-    [[ -n $list_linenum && $list_exit -eq 0 ]] && l_exit=0 
+    [[ -n "$json_linenum" && $json_exit -eq 0 ]] && j_exit=0 
 
-
-    [[ $j_exit -eq 0 || $l_exit -eq 0 || -n $success_linenum ]] && exitcode=0
+    [[ $j_exit -eq 0 || -n $success_linenum ]] && exitcode=0
     return $exitcode
 }
+
 ## exec spec script file 
 function _exec_ {
 
