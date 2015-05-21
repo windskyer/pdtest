@@ -1,4 +1,8 @@
 #!/usr/bin/ksh
+
+
+. ../ivm_function.sh
+
 pd_error() {
 	err=$1
 	error_code=$2
@@ -45,6 +49,10 @@ fi
 ivm_modify_virtual_eth()
 {
 	get_param $1
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
+	
 	./ivm_delete_virtual_eth.sh "$ivm_ip|$ivm_user|$slot_num"
 	if [ $? != 0 ]
 	then
@@ -57,5 +65,13 @@ ivm_modify_virtual_eth()
 	fi
 }
 
+
+
+DateNow=$(date +%Y%m%d%H%M%S)
+random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
+out_log="${path_log}/out_ivm_modify_sea_${DateNow}_${random}.log"
+error_log="${path_log}/error_ivm_modify_sea_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
 
 ivm_modify_virtual_eth $1

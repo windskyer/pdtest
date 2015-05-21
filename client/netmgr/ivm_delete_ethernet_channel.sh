@@ -493,6 +493,9 @@ delete_ethernet_channel() {
 	ivm_user=$2
 	ivm_ip=$1
 	devname=$3
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	rm_dev $ivm_ip $ivm_user $devname
 }
 

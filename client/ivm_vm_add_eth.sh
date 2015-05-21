@@ -112,6 +112,9 @@ error_log="${path_log}/error_ivm_vm_add_eth_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
+
 log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"lssyscfg -r lpar -F lpar_id,lpar_env\""
 vios_id=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F lpar_id,lpar_env" | awk -F"," '{if($2=="vioserver") print $1}')
 log_debug $LINENO "vios_id=${vios_id}"

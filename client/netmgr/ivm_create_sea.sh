@@ -20,6 +20,9 @@ create_sea () {
 	vea=$4
 	dvea=$5
 	pvid=$6
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"ioscli mkvdev -sea $td -vadapter $vea -default $dvea -defaultid $pvid\""
 	seainfo=$(ssh ${ivm_user}@${ivm_ip} "ioscli mkvdev -sea $td -vadapter $vea -default $dvea -defaultid $pvid" 2>&1)
 	if [ "$(echo $?)" != "0" ]
@@ -504,7 +507,7 @@ create_sea_param () {
 	
 	if [ $debug == 1 ]
 	then
-		echo $ivm_ip $ivm_user $td ${vea} $dvea ${pvid}
+		echo "$ivm_ip $ivm_user $td ${vea} $dvea ${pvid}"
 	fi
 
 }
@@ -514,7 +517,7 @@ ivm_create_sea() {
 	
 	create_sea_param $1
 
-	create_sea ${ivm_ip} ${ivm_user} ${td} "${vea}" ${dvea} ${pvid}	
+	create_sea "${ivm_ip}" "${ivm_user}" "${td}" "${vea}" "${dvea}" "${pvid}"	
 }
 
 log_flag=$(cat ../scrpits.properties 2> /dev/null | grep "LOG=" | awk -F"=" '{print $2}')

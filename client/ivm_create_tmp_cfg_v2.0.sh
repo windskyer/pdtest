@@ -56,8 +56,8 @@ error_log="${path_log}/error_ivm_create_tmp_cfg_v2.0_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
-# check authorized and repair error authorized
-check_authorized ${ivm_ip} ${ivm_user}
+#check NFSServer status and restart that had stop NFSServer proc
+nfs_server_check ${nfs_ip} ${nfs_name} ${nfs_passwd}
 
 #####################################################################################
 #####                                                                           #####

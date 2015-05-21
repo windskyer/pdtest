@@ -103,6 +103,8 @@ out_log="${path_log}/out_ivm_vm_ref_eth_${DateNow}_${random}.log"
 error_log="${path_log}/error_ivm_vm_ref_eth_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"lssyscfg -r lpar -F lpar_id,lpar_env\""
 vios_id=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F lpar_id,lpar_env" | awk -F"," '{if($2=="vioserver") print $1}')

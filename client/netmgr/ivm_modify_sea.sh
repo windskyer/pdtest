@@ -446,6 +446,9 @@ modify_sea () {
 	vea=$5
 	dvea=$6
 	pvid=$7
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"ioscli chdev -dev $seaname -attr real_adapter=${td} pvid=${pvid} pvid_adapter=${dvea} virt_adapters=${vea}\""
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli chdev -dev $seaname -attr real_adapter=${td} pvid=${pvid} pvid_adapter=${dvea} virt_adapters=${vea}" 2>&1)
 	if [ "$(echo $?)" != "0" ]

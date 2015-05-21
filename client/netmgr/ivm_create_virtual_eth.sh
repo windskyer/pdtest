@@ -53,6 +53,8 @@ ivm_create_virtual_eth()
 
 	#get parameters
 	get_param $1
+	
+	check_authorized ${ivm_ip} ${ivm_user}
 
 	#find an unused slot
 	current_max_slot=$(ssh ${ivm_user}@${ivm_ip}  "lshwres -r virtualio --rsubtype slot --level slot --filter lpar_ids=$lpar_id" | tail -1 | awk -F '[=,]' '{print $2}')

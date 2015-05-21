@@ -44,9 +44,9 @@ if [ "$lsrep_check" == "" ]
 then
 	if [ "$size" == "" ]
 	then
-		creat_result=$(ssh ${ivm_user}@${ivm_ip} "ioscli rmrep; ioscli mkrep -sp rootvg -size "20"G" 2>&1)
+		creat_result=$(ssh ${ivm_user}@${ivm_ip} "ioscli rmrep -f; ioscli mkrep -sp rootvg -size "20"G" 2>&1)
     else
-		creat_result=$(ssh ${ivm_user}@${ivm_ip} "ioscli rmrep; ioscli mkrep -sp rootvg -size "$size"G" 2>&1)
+		creat_result=$(ssh ${ivm_user}@${ivm_ip} "ioscli rmrep -f; ioscli mkrep -sp rootvg -size "$size"G" 2>&1)
 		
 	fi
 fi
@@ -232,12 +232,12 @@ _get_log_num()
 	elif [ ${tmp_loglevel} == "INFO" ]
 	then
 		lognum=20
-        elif [ ${tmp_loglevel} == "WARN" ]
-        then
-                lognum=30
-        elif [ ${tmp_loglevel} == "ERROR" ]
-        then
-                lognum=40
+    elif [ ${tmp_loglevel} == "WARN" ]
+    then
+        lognum=30
+    elif [ ${tmp_loglevel} == "ERROR" ]
+    then
+        lognum=40
 	else
 		lognum=40
 	fi
@@ -280,7 +280,8 @@ log_error()
 	_write_log $1 ERROR "$2"
 }
 
-vg_lock_check()
+#drop this ,update to single script ivm_check_vg_state.sh
+bak_vg_lock_check()
 {
 # check vg lock
 # vg_lock_check 172.24.23.39 padmin rootvg
@@ -324,89 +325,71 @@ fi
 
 }
 
+nfs_server_check (){
+# . ./ivm_function.sh    nfs_server_check 172.24.23.139 root 123456
 
-nfs_server_check()
-{
-# nfs_server_check 172.24.23.39 padmin
-
-ivm_ip=$1
-ivm_user=$2
+nfs_ip=$1
+nfs_user=$2
+nfs_password=$3
 pd_path='/powerdirector/tomcat/webapps/ROOT/shellscripts'
+
 # check NFS Server proce status
 nfs_check()
 {
-j=0
-log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} "lssrc -g nfs | grep -E 'biod|nfsd|rpc.mountd|rpc.statd|rpc.lockd' " "
-nfs_status=$(ssh ${ivm_user}@${ivm_ip} "lssrc -g nfs | grep -E 'biod|nfsd|rpc.mountd|rpc.statd|rpc.lockd' ")
-log_debug $LINENO "nfs_status=${nfs_status}"
+log_debug $LINENO "CMD:expect ./cmd_line.exp "${nfs_ip}" "${nfs_user}" "${nfs_password}" "lssrc -g nfs" "
+nfs_info=$(expect ./cmd_line.exp "${nfs_ip}" "${nfs_user}" "${nfs_password}" "lssrc -g nfs" )
+#echo "nfs_info= $nfs_info"
+log_debug $LINENO "nfs_info=${nfs_info}"
 
-echo "${nfs_status}" | awk '{print $1,$4}' | while read nfs_name nfs_sta
-do
-        if [ "${nfs_name}" == "biod" ] || [ "${nfs_name}" == "nfsd" ] || [ "${nfs_name}" == "rpc.mountd" ] || [ "${nfs_name}" == "rpc.statd" ] || [ "${nfs_name}" == "rpc.lockd" ] 
-        then
-	        if [ "${nfs_sta}" == "active" ] 
-	        then
-	                j=$((j+1))
-	        fi
-        fi
-done
+nfs_active_num=$(echo "${nfs_info}" | grep -E 'biod|nfsd|rpc.mountd|rpc.statd|rpc.lockd' | grep -c "active" )
+#echo "nfs_active_num = $nfs_active_num "
 }
 
 nfs_check
-if [ "${j}" -ne "5" ] 
+if [ "${nfs_active_num}" -ne "5" ] 
 then
-		log_debug $LINENO "CMD:expect ${pd_path}/oem_cmd.exp ${ivm_ip} ${ivm_user} "" "stopsrc -g nfs" "
-        stop_nfs=$(expect ${pd_path}/oem_cmd.exp ${ivm_ip} ${ivm_user} "" "stopsrc -g nfs")
+		log_debug $LINENO "CMD:expect ./cmd_line.exp ${nfs_ip} ${nfs_user} ${nfs_password} "stopsrc -g nfs""
+        stop_nfs=$(expect ./cmd_line.exp ${nfs_ip} ${nfs_user} ${nfs_password} "stopsrc -g nfs")
         log_debug $LINENO "stop_nfs=${stop_nfs}"
         
         sleep 10
-        log_debug $LINENO "CMD:expect ${pd_path}/oem_cmd.exp ${ivm_ip} ${ivm_user} "" "startsrc -g nfs" "
-        start_nfs=$(expect ${pd_path}/oem_cmd.exp ${ivm_ip} ${ivm_user} "" "startsrc -g nfs")
+        log_debug $LINENO "CMD:expect ./cmd_line.exp ${nfs_ip} ${nfs_user} ${nfs_password} "startsrc -g nfs" "
+        start_nfs=$(expect ./cmd_line.exp ${nfs_ip} ${nfs_user} ${nfs_password} "startsrc -g nfs")
 		log_debug $LINENO "start_nfs=${start_nfs}"
 		
         nfs_check
-        if [ "${j}" -ne "5" ] 
+        if [ "${nfs_active_num}" -ne "5" ] 
         then
-                echo "error:NFS Server restart fail not 5 proc start " >> ${error_log}
+            echo "error:NFS Server restart fail not 5 proc start " # >> ${error_log}
         fi
 fi
 }
 
-
 check_authorized()
 {
-# /powerdirector/tomcat/webapps/ROOT/shellscripts/check_authorized.sh '172.24.23.10' 'padmin'
-        ipaddr=$1
-        user=$2
-        passwd=$3
-		if [ "${passwd}" == "" ] 
-		then
-			passwd=$(java -Djava.ext.dirs="/powerdirector/tomcat/webapps/ROOT/WEB-INF/lib:/usr/java7_64/jre/lib/ext" -cp /powerdirector/tomcat/webapps/ROOT/WEB-INF/classes com.teamsun.pc.web.common.utils.MutualTrustSupport ${ipaddr} 2>/dev/null)
-		fi
-    	# echo "passwd= ${passwd}"     
-        pd_path='/powerdirector/tomcat/webapps/ROOT/shellscripts'
-        # error log and out log
-        # DateNow=$(date +%Y%m%d%H%M%S)
-        # random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
-        #out_log="out_registKey_${DateNow}_${random}.log"
-#error out
-        catchException() {    
-                error_result=$(cat $1)
-        }
-        
-# ping net status
-        ping -c 3 $ipaddr > /dev/null 2>&1
-        if [ "$(echo $?)" != "0" ] 
-        then
-                echo "$ipaddr unable to connect." >>${out_log}
-                exit 1
-        fi
+    # /powerdirector/tomcat/webapps/ROOT/shellscripts/check_authorized.sh '172.24.23.10' 'padmin'
+    ipaddr=$1
+    user=$2
+    passwd=$3
+    if [ "${passwd}" == "" ] 
+    then
+        passwd=$(java -Djava.ext.dirs="/powerdirector/tomcat/webapps/ROOT/WEB-INF/lib:/usr/java7_64/jre/lib/ext" -cp /powerdirector/tomcat/webapps/ROOT/WEB-INF/classes com.teamsun.pc.web.common.utils.MutualTrustSupport ${ipaddr} 2>/dev/null)
+    fi 
+    pd_path='/powerdirector/tomcat/webapps/ROOT/shellscripts'
+ 
+    # ping net status
+    ping -c 3 $ipaddr > /dev/null 2>&1
+    if [ "$(echo $?)" != "0" ] 
+    then
+            echo "$ipaddr unable to connect." >>${out_log}
+            exit 1
+    fi
 
-# check authorized use error password
-        pwd_cmd=$(expect $pd_path/cmd_line.exp $ipaddr $user "##3@@4#432sdf_werji##" "pwd" 2>/dev/null)
-        pwd_grep=$(echo "${pwd_cmd}"| grep 'home/padmin')
+    # check authorized use error password
+    pwd_cmd=$(expect $pd_path/cmd_line.exp $ipaddr $user "##3@@4#432sdf_werji##" "pwd" 2>/dev/null)
+    pwd_grep=$(echo "${pwd_cmd}"| grep 'home/padmin')
         
-# authorized is wrong
+    # authorized is wrong
     if [ "${pwd_grep}" == "" ] 
     then
         # echo "$ipaddr no trust ,start check every trust"
@@ -477,6 +460,7 @@ check_authorized()
                 fi
         fi
         keys_pub=$(cat ~/.ssh/id_dsa.pub)
+
         # echo " local known_hosts status"
         known_info=$(ls -l ~/.ssh/known_hosts 2>/dev/null)
         if [ "$?" -eq "0" ] 
@@ -550,33 +534,34 @@ check_authorized()
         keys2_grep=$(echo "$re_keys2" | grep authorized_keys2 |grep -v "ls" | awk '{print substr($1,2)}')
         if [ "$keys2_grep" != "" ] 
         then
-                if [ "$keys2_grep" != "rw-r--r--" ] 
-                then
-                        re_keys2=$(expect $pd_path/oem_cmd.exp $ipaddr $user $passwd "chmod 644 ~/.ssh/authorized_keys2 " 2>/dev/null)
-                        if [ "$?" -ne "0" ] 
-                        then
-                                sign[5]=1
-                        else
-                                sign[5]=0
-                        fi
-                else
-                        sign[5]=0
-                fi
-        else
-                re_keys2=$(expect $pd_path/oem_cmd.exp $ipaddr $user $passwd "touch ~/.ssh/authorized_keys2 ;chmod 644 ~/.ssh/authorized_keys2 " 2>/dev/null)
+            if [ "$keys2_grep" != "rw-r--r--" ] 
+            then
+                re_keys2=$(expect $pd_path/oem_cmd.exp $ipaddr $user $passwd "chmod 644 ~/.ssh/authorized_keys2 " >/dev/null)
                 if [ "$?" -ne "0" ] 
                 then
                         sign[5]=1
                 else
-                sign[5]=0
+                        sign[5]=0
                 fi
+            else
+                    sign[5]=0
+            fi
+        else
+            re_keys2=$(expect $pd_path/oem_cmd.exp $ipaddr $user $passwd "touch ~/.ssh/authorized_keys2 ;chmod 644 ~/.ssh/authorized_keys2 " >/dev/null)
+            echo "$re_keys2">>"$out_log"
+            if [ "$?" -ne "0" ] 
+            then
+                    sign[5]=1
+            else
+            sign[5]=0
+            fi
         fi
 
         # rebuild authorized use registSSHKey.exp
-		log_debug $LINENO "CMD:expect "$pd_path"/registSSHKey_v2.0.exp "$ipaddr" "$user" "$passwd" "${keys_pub}" 2>/dev/null"
-    	expect "$pd_path"/registSSHKey_v2.0.exp "$ipaddr" "$user" "$passwd" "${keys_pub}" 2>/dev/null
-    	# log_debug $LINENO "rebuild_ssh=${rebuild_ssh}"
-
-	fi
+        log_debug $LINENO "CMD:rebuild_ssh=$(expect "$pd_path"/registSSHKey_v2.0.exp "$ipaddr" "$user" "$passwd" "${keys_pub}" >/dev/null)"
+        rebuild_ssh=$(expect "$pd_path"/registSSHKey_v2.0.exp "$ipaddr" "$user" "$passwd" "${keys_pub}" >/dev/null)
+        echo "$rebuild_ssh">>"$out_log"
+        log_debug $LINENO "rebuild_ssh=${rebuild_ssh}"
+    fi
 }
 

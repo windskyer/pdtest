@@ -7,7 +7,7 @@ pd_error() {
 
        err=$1
 	error_code=$2
-	echo "0|0|ERROR-${err}: ${error_code}"
+	echo "0|0|ERROR-${error_code}: ${err}"
 	exit 1
 
 }
@@ -249,7 +249,7 @@ vgm_create_vg () {
 	cmdresult=$(echo "$ret"|grep "^cmdresult"|awk -F'=' '{print $2}')
 	if [ "$cmdresult" -ne 0 ]
 	then
-		pd_error "create vg error" "1000009"
+		pd_error "create vg error:${ret}" "1000009"
 	fi
 }
 
@@ -366,6 +366,8 @@ vg_create_param() {
 ivm_vgm_create_vg() {
 
 	vg_create_param $1 $2 
+	
+	check_authorized ${ivm_ip} ${ivm_user}
 	
 	i=0
 	while [ $i -lt $len ]

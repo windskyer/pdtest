@@ -67,6 +67,8 @@ create_ethernet_channel () {
 		cmdinfo=$cmdinfo" "mode=$mode
 	fi
 	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	ioslevel="2.2.3.1"
 	#nowioslevel maybe is 2.2.2.2 or 2.2.3.1
 	nowioslevel=$(ssh ${ivm_user}@${ivm_ip} "ioscli ioslevel")

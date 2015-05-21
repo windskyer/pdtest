@@ -76,8 +76,10 @@ done
 ## Set script dir 
 if [[ $dflag -eq 1 ]]; then
     if [[ -n $dirnames ]] ; then
-        CLIENT_DIR=${TOP_DIR}/$dirnames
+        CLIENT_DIR=$dirnames
         info $LINENO "scritp dir is $CLIENT_DIR"
+    else
+        die $LINENO "$dirnames script dir not exists "
     fi
 fi
 

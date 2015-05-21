@@ -71,6 +71,8 @@ error_log="${path_log}/error_ivm_vm_del_vfc_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
+check_authorized ${ivm_ip} ${ivm_user}
+
 vios_id=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F lpar_id,lpar_env" | awk -F"," '{if($2=="vioserver") print $1}')
 lpar_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F state --filter lpar_ids=$lpar_id")
 rmc_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F rmc_state,dlpar_io_capable --filter lpar_ids=${lpar_id}")

@@ -122,7 +122,7 @@ log_debug $LINENO "$0 $*"
 # check authorized and repair error authorized
 check_authorized ${ivm_ip} ${ivm_user}
 #check NFSServer status and restart that had stop NFSServer proc
-nfs_server_check ${ivm_ip} ${ivm_user}
+nfs_server_check ${nfs_ip} ${nfs_name} ${nfs_passwd}
 
 #####################################################################################
 #####                                                                           #####
@@ -446,7 +446,8 @@ echo "1|18|SUCCESS"
 log_info $LINENO "dd copy"
 log_debug $LINENO "CMD:expect ./ssh.exp ${ivm_user} ${ivm_ip} \"oem_setup_env|mkdir -p ${tmp_path}/${tmp_name}|chmod -R 777 ${tmp_path}/${tmp_name}\" > /dev/null 2>&1"
 expect ./ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|mkdir -p ${tmp_path}/${tmp_name}|chmod -R 777 ${tmp_path}/${tmp_name}" > /dev/null 2>&1
-
+log_debug $LINENO "CMD:expect ./ssh.exp ${ivm_user} ${ivm_ip} \"oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}\" > /dev/null 2>&1"
+expect ./ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}" > /dev/null 2>&1
 i=0
 cp_size=0
 progress=20
@@ -470,7 +471,7 @@ do
 	then
 		log_debug $LINENO "CMD:expect ./ssh.exp ${ivm_user} ${ivm_ip} \"oem_setup_env|dd if=/dev/r${disk_[$i]} of="${tmps_name}" bs=8M 2> ${error_log} > /dev/null &\" > /dev/null 2>&1"
 		expect ./ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|dd if=/dev/r${disk_[$i]} of="${tmps_name}" bs=8M 2> ${error_log} > /dev/null &" > /dev/null 2>&1
-
+		
 		#p=1
 		while [ ${cp_size} -lt ${disk_size} ]
 		do
@@ -484,13 +485,13 @@ do
 					if [ "$error_result" != "" ]
 					then
 						rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
-						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 						throwException "$error_result" "105070"
 					fi
 					if [ "$(echo "${dd_rlt}" | grep -v "records in" | grep -v "records out")" != "" ]
 					then
 						rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
-						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 						throwException "$(echo "$dd_rlt" | grep -v "records in" | grep -v "records out")" "105070"
 					else
 						break
@@ -502,7 +503,7 @@ do
 				if [ "${error_result}" != "" ]
 				then
 					ssh ${ivm_user}@${ivm_ip} "kill $(ps -ef|grep \"dd if=/dev/r${disk_[$i]} of="${tmps_name}"\" | grep -v grep | awk '{print $2}')" > /dev/null 2>&1
-					ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+					ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 					rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
 					throwException "Copy template failure" "105070"
 				fi
@@ -553,13 +554,13 @@ do
 					if [ "$error_result" != "" ]
 					then
 						rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
-						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 						throwException "$error_result" "105070"
 					fi
 					if [ "$(echo "${dd_rlt}" | grep -v "records in" | grep -v "records out")" != "" ]
 					then
 						rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
-						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+						ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 						throwException "$(echo "$dd_rlt" | grep -v "records in" | grep -v "records out")" "105070"
 					else
 						break
@@ -571,7 +572,7 @@ do
 				if [ "${error_result}" != "" ]
 				then
 					ssh ${ivm_user}@${ivm_ip} "kill $(ps -ef|grep \"dd if=/dev/r${disk_[$i]} of="${tmps_name}"\" | grep -v grep | awk '{print $2}')" > /dev/null 2>&1
-					ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+					ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 					rm -Rf ${tmp_path}"/"${tmp_name} > /dev/null 2>&1
 					throwException "Copy template failure" "105070"
 				fi
@@ -612,7 +613,7 @@ unmount_nfs
 
 if [ "$log_flag" == "0" ]
 then
-	ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" >> $out_log 2>&1
+	ssh ${ivm_user}@${ivm_ip} "rm -f ${error_log}" > /dev/null 2>&1
 	rm -f $error_log 2> /dev/null
 	rm -f $out_log 2> /dev/null
 fi

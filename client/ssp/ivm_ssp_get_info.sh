@@ -282,7 +282,7 @@ ssp_get_info() {
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli lssp -clustername ${clustername} -field pool size free total overcommit lus type id -fmt ':'" 2>/dev/null)
 	if [ "$(echo $?)" != "0" ]
 	then
-		cluster_error "Ssp get info error" "1000503"
+		cluster_error "Ssp get info error:${ret}" "1000503"
 	fi
 	log_debug $LINENO "ret=${ret}"
 	
@@ -308,7 +308,7 @@ ssp_get_info() {
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli lspv | grep 'caavg_private'" 2>/dev/null)
 	if [ "$(echo $?)" != "0" ]
 	then
-		cluster_error "Ssp get info error" "1000103"
+		cluster_error "Ssp get info error:${ret}" "1000103"
 	fi
 	log_debug $LINENO "ret=${ret}"
 	
@@ -321,7 +321,7 @@ ssp_get_info() {
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli lspv -size | grep ${cluster_metapvname}" 2>/dev/null)
 	if [ "$(echo $?)" != "0" ]
 	then
-		cluster_error "Ssp get info error" "1000104"
+		cluster_error "Ssp get info error:${ret}" "1000104"
 	fi
 	log_debug $LINENO "ret=${ret}"
 	
@@ -330,7 +330,7 @@ ssp_get_info() {
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli lspv -clustername $clustername -sp $spname -state" | grep 'hdisk' 2>/dev/null)
 	if [ "$(echo $?)" != "0" ]
 	then
-		cluster_error "Ssp get info error" "1000105"
+		cluster_error "Ssp get info error:${ret}" "1000105"
 	fi
 	log_debug $LINENO "ret=${ret}"
 	

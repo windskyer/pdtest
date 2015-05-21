@@ -4,6 +4,15 @@ The Choose Your Own Adventure README for pdtest
 ## 打包后 在dist 目录中 有 .tar 文件 
 ## 该压缩文件就是 shell 测试框架
 
+#######################################################
+###                                                 ###
+###当 pdtest_release.sh 脚本执行不成功的时候        ### 
+###在测试 pdtest.sh 脚本时候 就要使用 -d 参数       ###
+###eg: pdtest.sh -d /tmp/client                     ### 
+###eg: /tmp/client/ 表示最新开发的脚本目录          ###
+###                                                 ###
+#######################################################
+
 ## 操作参数说明
     pdtest  <options>
         -d <script dir>         eg: -d client
@@ -28,7 +37,6 @@ The Choose Your Own Adventure README for pdtest
     pdtest.sh -n getinfo -s "host vg"  #测试 etc/pdserver.conf 文进中的[getinfo] 组中的 host 和 vg  脚本 进行测试
 
     pdtest.sh -n getinfo -s vm -v v2.0  #测试 etc/pdserver.conf 文进中的[getinfo] 组中的 vm_v2.0 脚本 进行测试
-
 
     pdtest.sh -A  #测试 etc/pdserver.conf 文进中的 所有  组中的  脚本 进行测试
 
@@ -58,39 +66,39 @@ The Choose Your Own Adventure README for pdtest
     "#"号开头为注释
     etc/pdclient.conf 
          [getinfo]
-         host=172.24.23.140@padmin
-         vg=172.24.23.140#padmin#rootvg
-         vm_v2.0=172.24.23.140#padmin
+         host = 172.24.23.140@padmin
+         vg = 172.24.23.140#padmin#rootvg
+         vm_v2.0 = 172.24.23.140#padmin
          [createvm]
-         vm=172.24.23.140@padmin
+         vm = 172.24.23.140@padmin
 
          [shell]
-         get_host_info.sh=172.24.23.140@padmin
-         get_vg_info.sh=172.24.23.140@padmin@rootvg
+         get_host_info.sh = 172.24.23.140@padmin
+         get_vg_info.sh = 172.24.23.140@padmin@rootvg
 
          [getinfo] 和 etc/pdserver.conf 文件中的 [getinfo] 对应
          host #代表 脚本的 别名
-         =    #分割符号 必须没有空格
+         =    #分割符号
          172.24.23.140@padmin #对应着 host 脚本 所需要的参数 必须是 顺序一致 172.24.23.140 表示 $1,  padmin 表示 $2  参数之间 用@ 或 # 分割
-         host=172.24.23.140@padmin "=" 两边必须没有空格
+         host = 172.24.23.140@padmin "=" 
 
          [shell] 是一个特殊的组 
-         get_host_info.sh=172.24.23.140@padmin #前面是 脚本的名称 后面是 脚本的参数 = 两边必须没有空格
+         get_host_info.sh = 172.24.23.140@padmin #前面是 脚本的名称 后面是 脚本的参数 = 两边必须没有空格
 
     "#"号开头为注释
     etc/pdserver.conf     
         ## get host info
         [getinfo]
-        pv=get_pv_info.sh
-        vg=get_vg_info.sh
-        vm=get_vm_info.sh
-        vm_v2.0=get_vm_info_v2.0.sh
-        vm_state=get_vm_state.sh
-        host=get_host_info.sh
+        pv = get_pv_info.sh
+        vg = get_vg_info.sh
+        vm = get_vm_info.sh
+        vm_v2.0 = get_vm_info_v2.0.sh
+        vm_state = get_vm_state.sh
+        host = get_host_info.sh
         
         ## set vm info
         [createvm]
-        vm=create_vm.sh
+        vm= create_vm.sh
         
         [getinfo] 是函数组 对应 etc/pdclient 中的[getinfo]组
         host #代表脚本的别名

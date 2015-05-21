@@ -75,10 +75,21 @@ then
 	throwException "Lpar id is null" "105040"
 fi
 
+log_flag=$(cat scrpits.properties 2> /dev/null | grep "LOG=" | awk -F"=" '{print $2}')
+if [ "$log_flag" == "" ]
+then
+	log_flag=0
+fi
+
 DateNow=$(date +%Y%m%d%H%M%S)
 random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
 out_log="${path_log}/out_shutdown_os_vm_${DateNow}_${random}.log"
 error_log="${path_log}/error_shutdown_os_vm_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 lpar_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar --filter lpar_ids=${lpar_id} -F state" 2> /dev/null)
 

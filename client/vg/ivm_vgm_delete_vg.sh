@@ -317,6 +317,10 @@ del_vg_param() {
 ivm_vgm_del_vg() {
 
 	del_vg_param $1
+	
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	log_info $LINENO "delete vg"
 	log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"ioscli lsvg -pv ${vgname} -field PV_NAME -fmt ':'\""
 	del_ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli lsvg -pv ${vgname} -field PV_NAME -fmt ':'" 2>&1)

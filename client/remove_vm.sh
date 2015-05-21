@@ -1,8 +1,8 @@
 #!/usr/bin/ksh
 
-. ./ivm_function.sh
-
 echo "1|10|SUCCESS"
+
+. ./ivm_function.sh
 
 catchException() {
         
@@ -89,6 +89,8 @@ then
 fi
 
 log_debug $LINENO "$0 $*"
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 log_info $LINENO "get lpar state"
 log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"lssyscfg -r lpar --filter lpar_ids=${lpar_id} -F state\""

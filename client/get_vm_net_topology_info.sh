@@ -1,5 +1,7 @@
 #!/usr/bin/ksh
 
+. ./ivm_function.sh
+
 aix_getinfo() {
 	i=0
 	echo  "[\c"
@@ -244,9 +246,18 @@ ivm_ip=$1
 ivm_user=$2
 lpar_name=$3
 
+log_flag=$(cat scrpits.properties 2> /dev/null | grep "LOG=" | awk -F"=" '{print $2}')
+if [ "$log_flag" == "" ]
+then
+	log_flag=0
+fi
+
 DateNow=$(date +%Y%m%d%H%M%S)
-out_log="out_startup_${DateNow}.log"
-error_log="error_startup_${DateNow}.log"
+random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
+out_log="${path_log}/out_ivm_create_vm_iso_v2.0_${lpar_name}_${DateNow}_${random}.log"
+error_log="${path_log}/error_ivm_create_vm_iso_v2.0_${lpar_name}_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
 
 # check authorized and repair error authorized
 check_authorized ${ivm_ip} ${ivm_user}

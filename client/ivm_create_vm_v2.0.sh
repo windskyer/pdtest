@@ -110,11 +110,6 @@ do
         esac
 done
 
-# check authorized and repair error authorized
-check_authorized ${ivm_ip} ${ivm_user}
-#check NFSServer status and restart that had stop NFSServer proc
-nfs_server_check ${ivm_ip} ${ivm_user}
-
 length=0
 echo $2 | awk -F"|" '{for(i=1;i<=NF;i++) print $i}' | while read param
 do
@@ -227,6 +222,11 @@ if [ "$host_name" == "" ]
 then
 	host_name=$lpar_name
 fi
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
+#check NFSServer status and restart that had stop NFSServer proc
+nfs_server_check ${nfs_ip} ${nfs_name} ${nfs_passwd}
 
 #####################################################################################
 #####                                                                           #####
@@ -858,6 +858,9 @@ do
 	#####                                                                           #####
 	#####################################################################################
 	log_info $LINENO "dd copy"
+	log_debug $LINENO "CMD:expect ./ssh.exp ${ivm_user} ${ivm_ip} \"oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}\" > /dev/null 2>&1"
+	expect ./ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}" > /dev/null 2>&1
+	
 	if [ "${storage_type[$i]}" == "LVSIZE" -o "${storage_type[$i]}" == "LVNAME" -o "${storage_type[$i]}" == "PV" ]
 	then
 		log_info $LINENO "storage_type is ${storage_type[$i]}"

@@ -15,6 +15,7 @@ then
 		echo "\"name\":\"${fc_port[$i]}\", \c"
 		echo "\"wwpn\":\"${fc_wwpn[$i]}\", \c"
 		echo "\"speed\":\"${fc_speed[$i]}\", \c"
+		echo "\"attach\":\"${fc_attach[$i]}\", \c"
 		echo "\"physicalSlotNo\":\"${fc_phylocal[$i]}\", \c"
 		echo "\"npiv\":\c"
 		j=0
@@ -110,6 +111,7 @@ then
 		echo -e "\"name\":\"${fc_port[$i]}\", \c"
 		echo -e "\"wwpn\":\"${fc_wwpn[$i]}\", \c"
 		echo -e "\"speed\":\"${fc_speed[$i]}\", \c"
+		echo -e "\"attach\":\"${fc_attach[$i]}\", \c"
 		echo -e "\"physicalSlotNo\":\"${fc_phylocal[$i]}\", \c"
 		echo -e "\"npiv\":\c"
 		j=0
@@ -211,6 +213,8 @@ error_log="${path_log}/error_ivm_get_fc_info_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
+check_authorized ${ivm_ip} ${ivm_user}
+
 #####################################################################################
 #####                                                                           #####
 #####                       get NPIV port info                                  #####
@@ -308,12 +312,17 @@ then
 				fc_port[${fc_length}]=${fc_ports}
 				log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"ioscli lsdev -vpd -dev ${fc_ports}\""
 				fc_detail=$(ssh ${ivm_user}@${ivm_ip} ioscli lsdev -vpd -dev ${fc_ports} 2> /dev/null)
+				log_debug $LINENO "fc_detail=${fc_detail}"
 				if [ "${fc_detail}" != "" ]
 				then
 					fc_wwpn[${fc_length}]=$(echo "$fc_detail"|grep "Network Address"|awk -F"." '{print $NF}' )
 					fc_phylocal[${fc_length}]=$(echo "$fc_detail"|grep -w "${fc_ports}"|awk '{print $2}' )
 					fc_speed[${fc_length}]=$(echo "$fc_detail"|grep -w "${fc_ports}"|awk '{print $3}' )
 				fi
+				fscsi_port=$(echo ${fc_ports}|sed 's/fcs/fscsi/')
+				attach_result=$(expect ../ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|lsattr -El ${fscsi_port}" 2>&1)
+				log_debug $LINENO "attach_result=${attach_result}"
+				fc_attach[${fc_length}]=$(echo "$result"|grep "attach"|awk '{print $2}')
 			fi
 		#echo "$fc_length ${fc_port[${fc_length}]} ${fc_wwpn[${fc_length}]} ${fc_phylocal[${fc_length}]} "
 		fc_length=$(expr $fc_length + 1)

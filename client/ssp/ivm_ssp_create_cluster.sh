@@ -385,6 +385,7 @@ check_cluster_param() {
 		echo $ivm_ip $ivm_user $clustername ${repopvs} $spname ${sppvsstr} $hostname
 	fi
 
+    
 	vios_length=0
 	echo $2 |awk -F"|" '{for(i=1;i<=NF;i++) print $i}' | while read param
 	do

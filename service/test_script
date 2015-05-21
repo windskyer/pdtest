@@ -26,7 +26,8 @@ function check_res {
     [[ -f $filename ]] || die "Not Found $filename file"
     json_linenum=$(cat $filename | sed -n 's/^{\(.*\)}$/\1/p')
     success_linenum=$(cat $filename | sed -n 's/^1|\(.*\)|SUCCESS$/\1/p' | egrep "100" )
-    [[ -n $json_linenum || -n $success_linenum ]] && exitcode=0
+    list_linenum=$(cat $filename | sed -n 's/^\[{\(.*\)}\]$/\1/p')
+    [[ -n $json_linenum || -n $success_linenum || -n $list_linenum ]] && exitcode=0
     return $exitcode
 }
 ## exec spec script file 
@@ -100,10 +101,15 @@ function has_options {
 function get_script_file {
     local scriptname=$(basename $1)
     local scriptdir=$(dirname $1)
-    local outscript=$2
+    local nrname=$2
+    local outscript=$3
+    local FIND_DIR=$CLIENT_DIR/$scriptdir
 
     [[ -d $CLIENT_DIR ]] || die $LINENO "Not Found config $CLIENT_DIR"
-    ret=$(find $CLIENT_DIR/$scriptdir -name "$scriptname" -type f)
+
+    [[ -d $CLIENT_DIR/$nrname ]] && FIND_DIR=$CLIENT_DIR/$nrname/$scriptdir
+
+    ret=$(find $FIND_DIR -name "$scriptname" -type f)
     [[ -n $ret ]] && eval $outscript=$ret || die $LINENO "Not Found script file $scriptname"
 }
 
@@ -130,7 +136,7 @@ function  exec_funcs {
             fi
 
             funcname=$(echo $outfunc | cut -d"=" -f2)
-            get_script_file $funcname exec_script
+            get_script_file $funcname  $nrname exec_script
 
             has_args $nrname $ARGS_FILE $subcom
             if [[ $? -ne 0 ]]; then
@@ -156,7 +162,7 @@ function  exec_funcs {
             subcom=$(echo $outfunc | cut -d"=" -f1) 
             funcname=$(echo $outfunc | cut -d"=" -f2) 
 
-            get_script_file $funcname exec_script
+            get_script_file $funcname $nrname exec_script
 
             has_args $nrname $ARGS_FILE $subcom
             if [[ $? -ne 0 ]] ; then
@@ -180,7 +186,7 @@ function  exec_funcs {
 function all_exec_funcs {
 
     get_selects_conf $SCRIPT_FILE nrnames
-    nrnames=$(echo $nrname | tr "!" " ")
+    nrnames=$(echo $nrnames | tr "!" " ")
     [[ -n "$nrnames" ]] || die $LINENO "Not Found select in $SCRIPT_FILE"
 
     for nrname in $nrnames
@@ -215,7 +221,7 @@ function full_exec_funcs {
         outargs=$(echo $outfunc | cut -d"=" -f2)
         args=$(echo $outargs | sed 's/[#|@]/ /g')
 
-        get_script_file $funcname exec_script
+        get_script_file $funcname shell exec_script
 
         _exec_ $exec_script "$args" $funcname
     done

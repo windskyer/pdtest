@@ -15,7 +15,9 @@ expect {
 }
 
 expect {
-		"*$ "	{send "${cmd} \r"}
+		"*#*"	{send "${cmd} \r"}
+		"*$*"	{send "${cmd} \r"}
+		"*~>*"	{send "${cmd} \r"}
 }
 
 set timeout 1

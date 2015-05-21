@@ -357,6 +357,8 @@ fi
 ivm_vgm_alter_vg() {
 
 	alter_vg_param $1 $2 $3
+	
+	check_authorized ${ivm_ip} ${ivm_user}
 		
 if [[ $add_length -gt 0 ]]
 then

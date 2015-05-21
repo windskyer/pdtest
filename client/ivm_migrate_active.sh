@@ -1,9 +1,9 @@
 #!/usr/bin/ksh
 #./ivm_migrate_active.sh "172.24.23.38|padmin|2|172.24.23.39|padmin"
 
-. ./ivm_function.sh
-
 echo "1|0|SUCCESS"
+
+. ./ivm_function.sh
 
 catchException() {
         
@@ -104,6 +104,9 @@ then
 fi
 echo "1|20|SUCCESS"
 
+# check source host authorized and repair error authorized
+check_authorized ${ivm_source_ip} ${ivm_source_user}
+
 ssh ${ivm_source_user}@${ivm_source_ip} "lssyscfg -r lpar --filter lpar_ids=$lpar_id" > /dev/null 2> ${error_log}
 catchException "${error_log}"
 throwException "$error_result" "105005"
@@ -122,13 +125,17 @@ then
    throwException "rmc state or vm status is not ready." "105068"
 fi
 log_debug $LINENO "rmc_state=${rmc_state}"
-
+echo "1|30|SUCCESS"
 
 #####################################################################################
 #####                                                                           #####
 #####                       get target host type_model                          #####
 #####                                                                           #####
 #####################################################################################
+
+# check target host authorized and repair error authorized
+check_authorized ${ivm_target_ip} ${ivm_target_user}
+
 log_info $LINENO "check target host type_model"
 log_debug $LINENO "CMD:ssh ${ivm_target_user}@${ivm_target_ip} \"lssyscfg -r sys -F type_model\""
 type_model=$(ssh ${ivm_target_user}@${ivm_target_ip} "lssyscfg -r sys -F type_model " 2> "${error_log}")

@@ -76,6 +76,8 @@ error_log="${path_log}/error_ivm_vm_mapping_vfc_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
+check_authorized ${ivm_ip} ${ivm_user}
+
 lpar_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F state --filter lpar_ids=$lpar_id")
 rmc_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F rmc_state,dlpar_io_capable --filter lpar_ids=${lpar_id}")
 

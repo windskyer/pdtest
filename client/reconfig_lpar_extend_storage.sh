@@ -1,9 +1,9 @@
 #!/usr/bin/ksh
 # ./reconfig_lpar_extend_storage.sh "172.30.126.13|padmin|5|0.2|0.2|0.2|2|2|2|1024|1024|1024|128|" "aix1_lv1,2048|aix1_lv2,3072"
 
-. ./ivm_function.sh
-
 echo "1|0|SUCCESS"
+
+. ./ivm_function.sh
 
 catchException() {
         
@@ -168,6 +168,9 @@ case $rec_share_mode in
 		*)
 				throwException "Value for attribute sharing_mode is not valid." "105053";;
 esac
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 reconfig_cpu_mem()
 {

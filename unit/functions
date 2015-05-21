@@ -122,16 +122,15 @@ function report_results {
 function get_selects_conf {
     local xtrace=$(set +o | grep xtrace)
     set +o xtrace
-
     local confname=$1
     local var=$2
     local nrname=$3
 
     #rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
     if [[ ! -n $nrname ]] ; then
-        rets=$(awk NF $confname| sed -n 's/^\[\(.*\)\]$/\1/p')
+        rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}'| sed -n 's/^\[\(.*\)\]$/\1/p')
     else
-        rets=$(awk NF $confname| sed -n 's/^\[\(.*\)\]$/\1/p' | egrep "$nrname")
+        rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}'| sed -n 's/^\[\(.*\)\]$/\1/p' | egrep "$nrname")
     fi
 
     rets=$(echo $rets | tr " " "!")
@@ -151,7 +150,7 @@ function get_options_version_conf {
     local var=$5
 
     #ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | egrep "_$version=")
-    ret=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=")
+    ret=$(awk NF $confname |awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=")
     eval "$var=$ret"
 
     $xtrace
@@ -161,17 +160,18 @@ function get_options_version_conf {
 function get_options_conf {
     local xtrace=$(set +o | grep xtrace)
     set +o xtrace
+
     local nrname=$1
     local confname=$2
     local subcom=$3
     local var=$4
 
     if [[ $subcom != 'all' ]] ; then
-        rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
+        rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}'  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
         rets=$(echo $rets | tr " " "!")
         eval $var="$rets"
     else
-        rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+        rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
         rets=$(echo $rets | tr " " "!")
         eval $var="$rets"
         #echo $rets
@@ -193,16 +193,16 @@ function get_args_conf {
 
     if [[ $subcom != 'all' ]] ; then
         if [[ $nrname != "shell" ]] ; then
-            rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | awk -F"=" '{print $2}')
+            rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | awk -F"=" '{print $2}')
             rets=$(echo $rets | tr " " "!")
             eval $var="$rets"
         else
-            rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" )
+            rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" )
             rets=$(echo $rets | tr " " "!")
             eval $var="$rets"
         fi
     else
-        rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
+        rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}'  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
         rets=$(echo $rets | tr " " "!")
         eval $var="$rets"
         #echo $rets
@@ -215,11 +215,12 @@ function get_args_conf {
 function has_selects_conf {
     local xtrace=$(set +o | grep xtrace)
     set +o xtrace
+
     local nrname=$1
     local confname=$2
 
     #rets=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" )
-    rets=$(awk NF $confname | sed -n 's/^\[\(.*\)\]$/\1/p' | egrep "^$nrname")
+    rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | sed -n 's/^\[\(.*\)\]$/\1/p' | egrep "^$nrname")
     [[ -n $rets ]] && return 0 || return 1
     #[[ ! -n $selectname ]] && echo $rets || echo $rets |egrep "$selectname"
 
@@ -230,12 +231,13 @@ function has_selects_conf {
 function has_options_conf {
     local xtrace=$(set +o | grep xtrace)
     set +o xtrace
+
     local nrname=$1
     local confname=$2
     local subcom=$3
 
     if [[ $subcom != 'all' ]] ; then
-        ret=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
+        ret=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}'  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=")
         [[ -n $ret ]] && return 0 || return 1
     else
         return 0
@@ -254,7 +256,7 @@ function has_options_version_conf {
     local version=$4
 
     #ret=$(awk NF $confname  | awk '/'`echo $nrname`'/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}=" | egrep "_$version=" )
-    ret=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=" )
+    ret=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^${subcom}_${version}=" )
     [[ -n $ret ]] && return 0 || return 1
 
     $xtrace
@@ -264,14 +266,46 @@ function has_options_version_conf {
 function has_args_conf {
     local xtrace=$(set +o | grep xtrace)
     set +o xtrace
+
     local nrname=$1
     local confname=$2
     local funcname=$3
     local var=$4
 
     [[ -f $confname ]] || echo "Not Found config $confname"
-    rets=$(awk NF $confname  | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^$funcname" )
-    [[ -n $rets ]] && return 0 || return 1
+    rets=$(awk NF $confname | awk '{gsub(/ /,"",$0); print $0}' | awk '/\['`echo $nrname`'\]/{while(getline)if($0!~/\[/) print;else exit;}' | sed '/^\s*#/d' | egrep "=" | egrep "^$funcname" )
+    ret=$(echo $rets | cut -d"=" -f2)
+    [[ -n $ret ]] && return 0 || return 1
 
     $xtrace
 }
+
+# Tar all file and packages 
+function compress_object {
+    XTRACE=$(set +o | grep xtrace)
+    set +o xtrace
+
+    local exclude=$@
+    local object_dir=$TOP_DIR/
+    local object_sdist=$object_dir/sdist
+    local exclude_file="excludefile"
+    local level=$(uname -s)
+
+    if [[ -f /usr/ios/cli/ios.level ]] ; then
+        leveltmp=`cat /usr/ios/cli/ios.level`
+        [[ -n $leveltmp ]] && level="VIOS-$leveltmp"
+    fi
+
+    [[ ! -d $object_sdist ]] && mkdir -p $object_sdist
+    [[ -d $object_dir ]] && cd $object_dir/../
+    printf "$exclude" >$exclude_file
+    tar -cf $OBJECT_NAME-$OBJECT_VERSION-$level.tar -X $exclude_file $OBJECT_NAME
+    gzip -c $OBJECT_NAME-$OBJECT_VERSION-$level.tar  > $object_sdist/$OBJECT_NAME-$OBJECT_VERSION-$level.tar.gz
+
+    [[ -f $OBJECT_NAME-$OBJECT_VERSION-$level.tar ]] && rm -f $OBJECT_NAME-$OBJECT_VERSION-$level.tar
+    [[ -f $exclude_file ]] && rm -f $exclude_file
+
+    # Restore xtrace
+    $XTRACE
+}
+

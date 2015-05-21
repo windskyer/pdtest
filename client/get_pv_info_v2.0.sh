@@ -5,7 +5,7 @@ ivm_user=$2
 pv_name=$3
 
 . ./ivm_function.sh
-check_authorized ${ivm_ip} ${ivm_user} ${passwd}
+check_authorized ${ivm_ip} ${ivm_user}
 
 #to reduce cost on ssh,we just write a whole script in a single ssh
 

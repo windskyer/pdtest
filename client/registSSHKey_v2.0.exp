@@ -7,7 +7,7 @@ set key [lindex $argv 3]
 
 cd ~
 
-set timeout 10 
+set timeout 5 
 
 spawn ssh ${user}@${ipaddr}
 expect {
@@ -17,9 +17,9 @@ expect {
 
 expect {
 			 "*assword:*"	{send "$passwd\r"}
-			 "*$*"		{send "\r"}
-			 "*#*"		{send "\r"}
-			 "*~>*"	{send "\r"}
+			 "*$*"		    {send "\r"}
+			 "*#*"		    {send "\r"}
+			 "*~>*"	        {send "\r"}
 }
 
 expect {

@@ -366,6 +366,8 @@ out_log="${path_log}/out_ivm_vm_add_vol_${DateNow}_${random}.log"
 error_log="${path_log}/error_ivm_vm_add_vol_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 #####################################################################################
 #####                                                                           #####

@@ -49,6 +49,8 @@ modify_ethernet_channel() {
         then
                 cmdinfo=$cmdinfo" "mode=$mode
         fi
+        
+        check_authorized ${ivm_ip} ${ivm_user}
 
         if [ "$cmdinfo" == "" ]
         then

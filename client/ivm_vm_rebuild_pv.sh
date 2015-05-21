@@ -170,7 +170,7 @@ fi
 # check authorized and repair error authorized
 check_authorized ${ivm_ip} ${ivm_user}
 #check NFSServer status and restart that had stop NFSServer proc
-nfs_server_check ${ivm_ip} ${ivm_user}
+# nfs_server_check ${nfs_ip} ${nfs_name} ${nfs_passwd}
 
 #####################################################################################
 #####                                                                           #####
@@ -269,19 +269,19 @@ i=0
 while [ $i -lt $vlan_len ]
 do
 	log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"lshwres -r virtualio --rsubtype eth --level lpar --filter lpar_ids=${lpar_id},slots=${slot_num[$i]} -F mac_addr\""
-	mac_address=$(ssh ${ivm_user}@${ivm_ip} "lshwres -r virtualio --rsubtype eth --level lpar --filter lpar_ids=${lpar_id},slots=${slot_num[$i]} -F mac_addr" 2>&1)
+	mac_addr=$(ssh ${ivm_user}@${ivm_ip} "lshwres -r virtualio --rsubtype eth --level lpar --filter lpar_ids=${lpar_id},slots=${slot_num[$i]} -F mac_addr" 2>&1)
 	if [ $? -ne 0 ]
 	then
 		rollback_1
 		throwException "$mac_address" "105062"
 	fi
 	
-	mac_1=$(echo $mac_address | cut -c1-2)
-	mac_2=$(echo $mac_address | cut -c3-4)
-	mac_3=$(echo $mac_address | cut -c5-6)
-	mac_4=$(echo $mac_address | cut -c7-8)
-	mac_5=$(echo $mac_address | cut -c9-10)
-	mac_6=$(echo $mac_address | cut -c11-12)
+	mac_1=$(echo $mac_addr | cut -c1-2)
+	mac_2=$(echo $mac_addr | cut -c3-4)
+	mac_3=$(echo $mac_addr | cut -c5-6)
+	mac_4=$(echo $mac_addr | cut -c7-8)
+	mac_5=$(echo $mac_addr | cut -c9-10)
+	mac_6=$(echo $mac_addr | cut -c11-12)
 	mac_address[$i]=${mac_1}":"${mac_2}":"${mac_3}":"${mac_4}":"${mac_5}":"${mac_6}
 	log_debug $LINENO "mac_address=${mac_address[$i]}"
 	i=$(expr $i + 1)

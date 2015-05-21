@@ -16,13 +16,13 @@ fi
 
 DateNow=$(date +%Y%m%d%H%M%S)
 random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
-out_log="${path_log}/out_get_vm_state_${DateNow}_${random}.log"
-error_log="${path_log}/error_get_vm_state_${DateNow}_${random}.log"
+out_log="${path_log}/out_get_vg_info_v2.0_${DateNow}_${random}.log"
+error_log="${path_log}/error_get_vg_info_v2.0_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
-
 # check authorized and repair error authorized
 check_authorized ${ivm_ip} ${ivm_user}
+
 
 throwException() {
             

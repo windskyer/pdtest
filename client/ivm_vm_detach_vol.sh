@@ -64,6 +64,9 @@ do
     esac
 done					
 
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
+
 length=0
 echo $2 | awk -F"|" '{for(i=1;i<=NF;i++) print $i}' | while read param
 do

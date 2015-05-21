@@ -193,8 +193,8 @@ fi
 
 random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
 DateNow=$(date +%Y%m%d%H%M%S)
-out_log=""${path_log}/out_pd_svc_map_volume_${DateNow}_${random}.log"
-error_log=""${path_log}/error_pd_svc_map_volume_${DateNow}_${random}.log"
+out_log="${path_log}/out_pd_svc_map_volume_${DateNow}_${random}.log"
+error_log="${path_log}/error_pd_svc_map_volume_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 

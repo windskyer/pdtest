@@ -262,6 +262,9 @@ lvm_rm_lv() {
 	ivm_ip=$2
 	vgname=$3
 	lvstr=$4
+	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"ioscli rmlv -f ${lvstr}\""
 	ret=$(ssh ${ivm_user}@${ivm_ip} "ioscli rmlv -f ${lvstr}" 2>&1)
 	if [ "$(echo $?)" != "0" ]
@@ -325,6 +328,8 @@ rm_lv_param() {
 ivm_lvm_rm_lv() {
 
 	rm_lv_param $1 $2
+	
+	
 	
 	lvm_rm_lv ${ivm_user} ${ivm_ip} ${vgname} "${lvstr}"
 	

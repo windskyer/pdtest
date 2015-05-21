@@ -1,8 +1,8 @@
 #!/usr/bin/ksh
 
-. ./ivm_function.sh
-
 echo "1|35|SUCCESS"
+
+. ./ivm_function.sh
 
 catchException() {
         
@@ -110,6 +110,9 @@ case $rec_share_mode in
 		*)
 				throwException "Value for attribute sharing_mode is not valid.";;
 esac
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 #####################################################################################
 #####                                                                           #####

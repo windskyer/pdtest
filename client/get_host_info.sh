@@ -18,7 +18,7 @@ error_log="${path_log}/error_get_host_info_${DateNow}_${random}.log"
 
 log_debug $LINENO "$0 $*"
 
-check_authorized ${ivm_ip} ${ivm_user} ${passwd}
+check_authorized ${ivm_ip} ${ivm_user}
 
 log_debug $LINENO "CMD:ssh ${ivm_user}@${ivm_ip} \"lssyscfg -r sys -F type_model,serial_num,state,max_lpars,service_lpar_id && lshwres -r proc --level sys -F curr_avail_sys_proc_units,configurable_sys_proc_units,installed_sys_proc_units && lshwres -r mem --level sys -F configurable_sys_mem,curr_avail_sys_mem,installed_sys_mem,sys_firmware_mem\""
 host_info=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r sys -F type_model,serial_num,state,max_lpars,service_lpar_id && lshwres -r proc --level sys -F curr_avail_sys_proc_units,configurable_sys_proc_units,installed_sys_proc_units && lshwres -r mem --level sys -F configurable_sys_mem,curr_avail_sys_mem,installed_sys_mem,sys_firmware_mem")

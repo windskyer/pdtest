@@ -231,7 +231,7 @@ aix_getinfo() {
 					g=$(expr $g + 1)
 				done
 				
-				vm_pv_info=$(echo "$all_vm_pv_info" | awk -F":" '{if($1==pvname) {print $0}}' pvname=$pv)
+				vm_pv_info=$(echo "$all_vm_pv_info" | awk -F":" '{if($1==pvname) {print $0}}' pvname=$pv|head -n 1)
 				if [ "$vm_pv_info" != "" ]
 				then
 					pv_size=$(echo "$vm_pv_info" | awk -F":" '{print $2}')
@@ -567,7 +567,7 @@ linux_getinfo() {
 					g=$(expr $g + 1)
 				done
 				
-				vm_pv_info=$(echo "$all_vm_pv_info" | awk -F":" '{if($1==pvname) {print $0}}' pvname=$pv)
+				vm_pv_info=$(echo "$all_vm_pv_info" | awk -F":" '{if($1==pvname) {print $0}}' pvname=$pv|head -n 1)
 				if [ "$vm_pv_info" != "" ]
 				then
 					pv_size=$(echo "$vm_pv_info" | awk -F":" '{print $2}')

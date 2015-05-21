@@ -1,8 +1,8 @@
 #!/usr/bin/ksh
 
-. ./ivm_function.sh
-
 echo "1|0|SUCCESS"
+
+. ./ivm_function.sh
 
 catchException() {
         
@@ -81,10 +81,22 @@ if [ "$lpar_id" == "" ]
 then
 	throwException "Lpar id is null" "105045"
 fi
+log_flag=$(cat scrpits.properties 2> /dev/null | grep "LOG=" | awk -F"=" '{print $2}')
+if [ "$log_flag" == "" ]
+then
+	log_flag=0
+fi
 
 DateNow=$(date +%Y%m%d%H%M%S)
 random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
-error_log="${path_log}/error_restart_vm_${DateNow}_${random}.log"
+out_log="${path_log}/out_restart_vm_${lpar_name}_${DateNow}_${random}.log"
+error_log="${path_log}/error_restart_vm_${lpar_name}_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
+
 
 lpar_state=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar --filter lpar_ids=${lpar_id} -F state" 2> /dev/null)
 
@@ -132,5 +144,11 @@ do
 							startupNorm;;
 		esac
 done
+
+if [ "$log_flag" == "0" ]
+then
+	rm -f "${error_log}" 2> /dev/null
+	rm -f "$out_log" 2> /dev/null
+fi
 
 echo "1|100|SUCCESS: $desc"

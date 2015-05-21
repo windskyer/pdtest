@@ -144,6 +144,9 @@ then
 	throwException "Lpar id is null" "105053"
 fi
 
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
+
 lpar_check=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F lpar_id | grep $lpar_id" 2> "${error_log}")
 if [ "$(echo $?)" != "0" ]
 then

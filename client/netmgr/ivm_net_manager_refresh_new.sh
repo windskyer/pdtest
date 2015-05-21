@@ -1,6 +1,9 @@
 #!/usr/bin/ksh
 debug=0
 
+
+. ../ivm_function.sh
+
 pd_error() {
 
        err=$1
@@ -449,6 +452,9 @@ show_lnagg_info() {
 net_manager_refresh () {
 	ivm_user=$2
 	ivm_ip=$1
+	
+	
+	check_authorized ${ivm_ip} ${ivm_user}
 
 	get_sea_info $ivm_ip $ivm_user
 	get_phyeth_info $ivm_ip $ivm_user
@@ -558,6 +564,14 @@ fi
 
 ##new add end: modify param format
 ######################################
+
+
+DateNow=$(date +%Y%m%d%H%M%S)
+random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
+out_log="${path_log}/out_ivm_modify_ethernet_channel_${DateNow}_${random}.log"
+error_log="${path_log}/error_ivm_modify_ethernet_channel_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
 
 net_manager_refresh ${ivm_ip} ${ivm_user}
 

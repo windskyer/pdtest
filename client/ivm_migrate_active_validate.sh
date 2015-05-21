@@ -126,7 +126,14 @@ then
 fi
 #echo "1|20|SUCCESS"
 
+# check source host authorized and repair error authorized
+check_authorized ${ivm_source_ip} ${ivm_source_user}
+
+# check target host authorized and repair error authorized
+check_authorized ${ivm_target_ip} ${ivm_target_user}
+
 ssh ${ivm_source_user}@${ivm_source_ip} "lssyscfg -r lpar --filter lpar_ids=$lpar_id" > /dev/null 2> ${error_log}
+
 catchException "${error_log}"
 throwException "$error_result" "105005" 
 
@@ -192,114 +199,134 @@ fi
 log_debug $LINENO "vadapter_vios=${vadapter_vios}"
 #echo "1|50|SUCCESS"
 
+#########################get backing device:lv #########################
+log_info $LINENO "get backing device:lv"
+log_debug $LINENO "CMD:ssh ${ivm_source_user}@${ivm_source_ip} \"ioscli lsmap -vadapter $vadapter_vios -field backing -type lv\" | awk '{print $NF}'"
+lv_backing=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lsmap -vadapter $vadapter_vios -field backing -type lv" | awk '{print $NF}' 2> "${error_log}")
+if [ "$(echo $?)" == "0" ]
+then
+	if [ "$lv_backing" != "" ]
+	then
+		throwException "vm have lv cloud not migrate:$lv_backing" "105064"
+	else
+		catchException "${error_log}"
+		throwException "$error_result" "105064"
+	fi
+fi
+
+
 #########################get backing device:pv #########################
 log_info $LINENO "get backing device:pv"
-log_debug $LINENO "CMD:ssh ${ivm_source_user}@${ivm_source_ip} \"ioscli lsmap -vadapter $vadapter_vios -field backing -type disk\" | awk '{print $NF}'"
-backing=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lsmap -vadapter $vadapter_vios -field backing -type disk" | awk '{print $NF}' 2> "${error_log}")
-if [ "$(echo $?)" != "0" ]
-then
-	if [ "$backing" != "" ]
-	then
-		throwException "$backing" "105064"
-	else
-		catchException "${error_log}"
-		throwException "$error_result" "105064"
-	fi
-fi
+log_debug $LINENO "CMD:ssh ${ivm_source_user}@${ivm_source_ip} \"ioscli lsmap -vadapter $vadapter_vios -field backing -type disk\" | awk '{print \$NF}'"
+pv_backing=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lsmap -vadapter $vadapter_vios -field backing -type disk" | awk '{print $NF}' 2> "${error_log}")
+#if [ "$(echo $?)" != "0" ]
+#then
+	#	if [ "$backing" != "" ]
+	#	then
+		#		throwException "$backing" "105064"
+	#	else
+		#		catchException "${error_log}"
+		#		throwException "$error_result" "105064"
+	#	fi
+#fi
 
 ######################## get backing device:lu #########################
-lu_backings=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lsmap -vadapter $vadapter_vios -field backing" | awk '{print $NF}' 2> "${error_log}")
-if [ "$(echo $?)" != "0" ]
+lu_backings=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lsmap -vadapter $vadapter_vios -field backing -type cl_disk" | awk '{print $NF}' 2> "${error_log}")
+#if [ "$(echo $?)" != "0" ]
+#then
+	#	if [ "$lu_backings" != "" ]
+	#	then
+		#		throwException "$lu_backings" "105064"
+	#	else
+		#		catchException "${error_log}"
+		#		throwException "$error_result" "105064"
+	#	fi
+#fi
+
+if [ "$pv_backing" != "" ] && [ "$lu_backings" != "" ]
 then
-	if [ "$lu_backings" != "" ]
-	then
-		throwException "$lu_backings" "105064"
-	else
-		catchException "${error_log}"
-		throwException "$error_result" "105064"
-	fi
+	throwException "vm have pv and lu cloud not migrate:$backing" "105064"
 fi
 
+
+if [ "$lu_backings" != "" ]
+then
 lu_back="false"
-ssp_clusters=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli cluster -list|grep -E 'CLUSTER_NAME' "|awk '{print $2}')
-for ssp_cluster in 	`echo "$ssp_clusters"`
-do
-	ssp_cluster_info=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lssp -clustername $ssp_cluster")
-	#echo $ssp_cluster
-	pool_name=$(echo "$ssp_cluster_info" |grep -E 'POOL_NAME'|awk '{print $2}')
-	lu_info=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lssp -clustername $ssp_cluster -sp $pool_name -bd | grep -v \"Lu Name \"")
+ssp_cluster=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli cluster -list|grep -E 'CLUSTER_NAME' "|awk '{print $2}')
+ssp_cluster_info=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lssp -clustername $ssp_cluster")
+#echo $ssp_cluster
+pool_name=$(echo "$ssp_cluster_info" |grep -E 'POOL_NAME'|awk '{print $2}')
+lu_info=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli lssp -clustername $ssp_cluster -sp $pool_name -bd | grep -v \"Lu Name \"")
 	
-	OLDIFS=$IFS;IFS='
-	';
-	for lu in `echo "$lu_info"`
-	do	
-		lu_name=$(echo "$lu" | awk '{print $1}')
-		lu_id=$(echo "$lu" | awk '{print $NF}')
-		lu_file=$(echo $lu_name"."$lu_id)
-		#echo "lu_file is :$lu_file"
-		for lu_backing in `echo "$lu_backings"`
-		do
-			if [ "$lu_file"  == "$lu_backing" ]
-			then
-				IFS=$OLDIFS
-				lu_back="true"
-				break 2
-			fi
-		done
-	
+OLDIFS=$IFS;IFS='
+';
+for lu in `echo "$lu_info"`
+do	
+	lu_name=$(echo "$lu" | awk '{print $1}')
+	lu_id=$(echo "$lu" | awk '{print $NF}')
+	lu_file=$(echo $lu_name"."$lu_id)
+	#echo "lu_file is :$lu_file"
+	for lu_backing in `echo "$lu_backings"`
+	do
+		if [ "$lu_file"  == "$lu_backing" ]
+		then
+			IFS=$OLDIFS
+			lu_back="true"
+			break 2
+		fi
 	done
-	IFS=$OLDIFS
 	
 done
+IFS=$OLDIFS
 #echo "lu_back is:$lu_back"
-
+fi
 
 ######################### backing device:pv or lu #########################
-if [ "$backing" == "" -a "lu_back" == "false" ]
+if [ "$pv_backing" == "" -a "$lu_back" == "false" ]
 then
 	throwException "Backing device must be share storage." "105064"
 fi
 
-if [ "$backing" != "" ]
+if [ "$pv_backing" != "" ]
 then
-	#check_share_pv $backing				  >> $out_log
-	check_unique_id=$(lsattr -El $backing | grep unique_id |  awk '{print $2}')
-	pvs=$(ssh ${ivm_target_user}@${ivm_target_ip} "ioscli lspv | grep -v "NAME"| awk '{print \$1}'")
-	for pv in `echo $pvs`
+	for source_pv in `echo $pv_backing`
 	do
-		unique_id_info=$(lsattr -El $pv | grep unique_id 2>/dev/null )
-		if [ "$unique_id_info" != ""  ]
+		uniq_flag=0
+		if [ $source_pv != "" ]
 		then
-			unique_id=$(echo $unique_id_info | awk '{print $2}')
-			log_debug $LINENO "unique_id of $pv is: $unique_id"
-			if [ "$check_unique_id" == "$unique_id" ]
+			#########################check unique id#########################
+			source_unique_id=$(ssh ${ivm_source_user}@${ivm_source_ip} "ioscli chkdev -dev $source_pv -field name IDENTIFIER -fmt :"|awk -F":" '{print $2}'  2>&1)
+			targetpvs=$(ssh ${ivm_target_user}@${ivm_target_ip} "ioscli lspv | grep -v "NAME"| awk '{print \$1}'")
+			for target_pv in `echo $targetpvs`
+			do
+				target_unique_id=$(ssh ${ivm_target_user}@${ivm_target_ip} "ioscli chkdev -dev $target_pv -field name IDENTIFIER -fmt :"|awk -F":" '{print $2}'  2>&1)
+				if [ "$target_unique_id" != ""  ]
+				then
+					if [ "$source_unique_id" == "$target_unique_id" ]
+					then
+						log_debug $LINENO "target $target_pv equals to source $source_pv,id is $source_unique_id"
+						uniq_flag=1
+					fi
+				fi
+			done
+			if [ $uniq_flag == "0" ]
 			then
-				log_debug $LINENO "$pv equals to $backing,id is $unique_id"
+				throwException "Backing device $source_pv must be share storage." "105064"
+			fi		
+			#########################check reserve_policy #########################
+			reserve_policy=$(expect ./ssh.exp ${ivm_source_user} ${ivm_source_ip} "oem_setup_env|lsattr -El $source_pv" | grep "reserve_policy" | awk '{print $2}' 2>&1)
+			if [ "$(echo $?)" != "0"  -o "$reserve_policy" != "no_reserve" ]
+			then
+				if [ "$reserve_policy" != "" ]
+				then
+					throwException "reserve_policy wrong:$reserve_policy" "105064"
+				else
+					catchException "${reserve_policy}"
+					throwException "reserve_policy wrong:$error_result" "105064"
+				fi
 			fi
 		fi
 	done
-	
-	log_debug $LINENO "backing=${backing}"
-
-	#########################check reserve_policy #########################
-
-	log_info $LINENO "check reserve_policy"
-	reserve_policy=$(ssh ${ivm_source_user}@${ivm_source_ip} "oem_setup_env <<eof
-	lsattr -El $backing | grep reserve_policy
-	<<eof" | awk '{print $2}' 2> "${error_log}")
-	log_debug $LINENO "reserve_policy=${reserve_policy}"
-	if [ "$(echo $?)" != "0"  -o "$reserve_policy" != "no_reserve" ]
-	then
-		if [ "$reserve_policy" != "" ]
-		then
-			#echo "reserve_policy wrong." >> $error_log
-			throwException "reserve_policy wrong:$reserve_policy" "105064"
-		else
-			#echo "reserve_policy wrong." >> $error_log
-			catchException "${error_log}"
-			throwException "reserve_policy wrong:$error_result" "105064"
-		fi
-	fi
 fi
 
 #########################check vios slots #########################
@@ -360,9 +387,10 @@ fi
 #######################check target lpar name ######################
 log_info $LINENO "check target lpar name"
 source_name=$(ssh ${ivm_source_user}@${ivm_source_ip} "lssyscfg -r lpar -F name --filter lpar_ids=$lpar_id")
+log_debug $LINENO "source_name=${source_name}"
 target_names=$(ssh ${ivm_target_user}@${ivm_target_ip} "lssyscfg -r lpar -F name")
 log_debug $LINENO "target_names=${target_names}"
-target_name=$(echo "$target_names" | grep $source_name)
+target_name=$(echo "$target_names" | grep -w $source_name)
 if [ "$target_name" != "" ]
 then
 	#echo "Target name can not be the same as source name." >> $error_log
@@ -451,7 +479,7 @@ fi
 #####################################################################################
 log_info $LINENO "validate a partition migration"
 log_debug $LINENO "CMD:ssh ${ivm_source_user}@${ivm_source_ip} \"migrlpar -o v -t ${host_num} --ip ${ivm_target_ip} -u ${ivm_target_user} --id $lpar_id\""
-migr_validate=$(ssh ${ivm_source_user}@${ivm_source_ip} "migrlpar -o v -t ${host_num} --ip ${ivm_target_ip} -u ${ivm_target_user} --id $lpar_id" > /dev/null)
+migr_validate=$(ssh ${ivm_source_user}@${ivm_source_ip} "migrlpar -o v -t ${host_num} --ip ${ivm_target_ip} -u ${ivm_target_user} --id $lpar_id")
 if [ "$(echo $?)" != "0" ]
 then
    #echo "1|100|SUCCESS"
@@ -460,6 +488,7 @@ else
    #echo "1|100|SUCCESS"
    print_info 1
 fi
+log_debug $LINENO "migr_validate=${migr_validate}"
 
 if [ "$log_flag" == "0" ]
 then

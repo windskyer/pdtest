@@ -41,6 +41,8 @@ ivm_delete_virtual_eth()
 	#get parameters
 	get_param $1
 	
+	check_authorized ${ivm_ip} ${ivm_user}
+	
 	#delete the virtual eth
 	log_debug $LINENO "CMD:ssh "$ivm_user"@"$ivm_ip" \"chhwres -r virtualio --rsubtype eth -o r -s $slot_num --id $lpar_id\""
 	ret=$(ssh "$ivm_user"@"$ivm_ip" "chhwres -r virtualio --rsubtype eth -o r -s $slot_num --id $lpar_id" 2>&1)

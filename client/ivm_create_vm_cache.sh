@@ -382,7 +382,7 @@ fi
 # check authorized and repair error authorized
 check_authorized ${ivm_ip} ${ivm_user}
 #check NFSServer status and restart that had stop NFSServer proc
-nfs_server_check ${ivm_ip} ${ivm_user}
+nfs_server_check ${nfs_ip} ${nfs_name} ${nfs_passwd}
 
 if [ $is_mount -eq 1 ]
 then
@@ -1033,6 +1033,9 @@ do
 	#####                                                                           #####
 	#####################################################################################
 	log_info $LINENO "dd copy"
+	log_debug $LINENO "CMD:expect ./ssh.exp ${ivm_user} ${ivm_ip} \"oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}\" > /dev/null 2>&1"
+	expect ./ssh.exp ${ivm_user} ${ivm_ip} "oem_setup_env|mkdir -p ${path_log}|chmod -R 777 ${path_log}" > /dev/null 2>&1
+	
 	if [ "${storage_type[$i]}" == "LVSIZE" -o "${storage_type[$i]}" == "LVNAME" -o "${storage_type[$i]}" == "PV" ]
 	then
 		log_info $LINENO "storage_type is ${storage_type[$i]}"

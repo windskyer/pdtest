@@ -331,6 +331,9 @@ create_lv_param() {
 ivm_lvm_create_lv() {
 
 	create_lv_param $1 $2 $3
+	
+	
+	check_authorized ${ivm_ip} ${ivm_user}
 	  
 	i=0
 	while [ $i -lt $pvlen ]

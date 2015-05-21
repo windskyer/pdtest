@@ -1,6 +1,7 @@
 #!/usr/bin/ksh
 
 echo "1|0|SUCCESS"
+. ./ivm_function.sh
 
 throwException() {
             
@@ -34,6 +35,21 @@ do
         esac
 done
 
+log_flag=$(cat scrpits.properties 2> /dev/null | grep "LOG=" | awk -F"=" '{print $2}')
+if [ "$log_flag" == "" ]
+then
+	log_flag=0
+fi
+
+DateNow=$(date +%Y%m%d%H%M%S)
+random=$(perl -e 'my $random = int(rand(9999)); print "$random";')
+out_log="${path_log}/out_ivm_create_vm_iso_v2.0_${lpar_name}_${DateNow}_${random}.log"
+error_log="${path_log}/error_ivm_create_vm_iso_v2.0_${lpar_name}_${DateNow}_${random}.log"
+
+log_debug $LINENO "$0 $*"
+
+# check authorized and repair error authorized
+check_authorized ${ivm_ip} ${ivm_user}
 
 lpar_info=$(ssh ${ivm_user}@${ivm_ip} "lssyscfg -r lpar -F lpar_id,lpar_env,state" 2>&1)
 if [ $? -ne 0 ]
@@ -107,6 +123,13 @@ do
 		continue
 	fi
 done
+
+if [ "$log_flag" == "0" ]
+then
+	rm -f "${error_log}" 2> /dev/null
+	rm -f "$out_log" 2> /dev/null
+fi
+
 echo "1|100|SUCCESS"
 
 result=$(ssh ${ivm_user}@${ivm_ip} "chsysstate -r lpar -o shutdown --id ${vios_id}" 2>&1)

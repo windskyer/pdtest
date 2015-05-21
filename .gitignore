@@ -1,7 +1,10 @@
 log
 bin
+sdist
 
 setup.*
 pdtest
 etc/*.sh
+service/*.sh
+client
 

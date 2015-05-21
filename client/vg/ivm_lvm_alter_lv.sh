@@ -308,6 +308,9 @@ alter_lv_param() {
 	then
 		pd_error "param error" "100000"
 	fi
+    
+    check_authorized ${ivm_ip} ${ivm_user}
+    
 	lvname=$(echo $2 |awk -F '|' '{print $1}')
 	lvnewsize=$(echo $2 |awk -F '|' '{print $2}')
 	
