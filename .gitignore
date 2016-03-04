@@ -7,4 +7,6 @@ pdtest
 etc/*.sh
 service/*.sh
 client
+*.egg-info/
+*.egg
 
